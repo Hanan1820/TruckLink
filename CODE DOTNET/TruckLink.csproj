@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!-- Source: composer.json (name: laravel/laravel, php ^8.1, laravel/framework ^10.10) -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>TruckLink</RootNamespace>
+    <AssemblyName>TruckLink</AssemblyName>
+    <UserSecretsId>trucklink-aspnet-mirror</UserSecretsId>
+    <Description>ASP.NET Core MVC mirror of the TruckLink Laravel 10 project (structural 1:1 translation).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- laravel/framework (Eloquent + sqlsrv driver, DB_CONNECTION=sqlsrv) -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.10" />
+    <!-- laravel/framework (artisan migrate / make:model tooling) -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10" PrivateAssets="all" />
+    <!-- laravel/framework Hash facade (bcrypt, config/hashing.php; keeps the stored $2y$ hashes valid) -->
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <!-- laravel/framework Blade views are compiled at publish time; edit-and-refresh in Development like `php artisan serve` -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.10" />
+    <!-- laravel/framework Mail (MAIL_MAILER=smtp later): replace Support/Mail/Mailer.cs body with MailKit -->
+    <!-- <PackageReference Include="MailKit" Version="4.8.0" /> -->
+    <!-- guzzlehttp/guzzle ^7.2 -> System.Net.Http.HttpClient (built in; no package) -->
+    <!-- laravel/tinker ^2.8 -> `dotnet ef` / C# Interactive (no package) -->
+  </ItemGroup>
+
+  <!-- composer.json require-dev (not shipped; there is no test project in the prescribed structure):
+         fakerphp/faker      -> Bogus
+         laravel/pint        -> `dotnet format`
+         mockery/mockery     -> Moq / NSubstitute
+         nunomaduro/collision-> (console exception renderer, built in)
+         phpunit/phpunit     -> xunit + Microsoft.AspNetCore.Mvc.Testing
+         spatie/laravel-ignition -> app.UseDeveloperExceptionPage()
+       package.json devDependencies: axios, laravel-vite-plugin, vite -> libman.json / plain <script> tags -->
+
+  <ItemGroup>
+    <None Include="trucklink.sql" CopyToOutputDirectory="Never" />
+    <EmbeddedResource Update="Resources\SharedResource.resx" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,11 @@
+{
+  "version": "3.0",
+  "defaultProvider": "jsdelivr",
+  "libraries": [
+    { "library": "bootstrap@5.3.3", "destination": "wwwroot/lib/bootstrap/", "files": [ "dist/css/bootstrap.min.css", "dist/js/bootstrap.bundle.min.js" ] },
+    { "library": "bootstrap-icons@1.11.3", "destination": "wwwroot/lib/bootstrap-icons/", "files": [ "font/bootstrap-icons.min.css", "font/fonts/bootstrap-icons.woff", "font/fonts/bootstrap-icons.woff2" ] },
+    { "library": "chart.js@4.4.1", "destination": "wwwroot/lib/chart.js/", "files": [ "dist/chart.umd.min.js" ] },
+    { "provider": "unpkg", "library": "leaflet@1.9.4", "destination": "wwwroot/lib/leaflet/", "files": [ "dist/leaflet.css", "dist/leaflet.js" ] }
+  ],
+  "_Source": "package.json (axios, laravel-vite-plugin, vite = dev tooling, not shipped) + the CDN <link>/<script> tags in resources/views/layouts/partials/head.blade.php, admin/dashboard.blade.php (Chart.js 4.4.1) and customer/booking/partials/map-picker.blade.php (Leaflet 1.9.4). The views still load these from the same CDNs; libman.json is the local-copy alternative. Google Fonts (Plus Jakarta Sans, Inter) stay on fonts.googleapis.com."
+}
