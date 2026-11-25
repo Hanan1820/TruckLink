@@ -1,0 +1,93 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic assigned = ViewData["assigned"];
+    dynamic byType = ViewData["byType"];
+    dynamic filters = ViewData["filters"];
+    dynamic highlight = ViewData["highlight"];
+    dynamic total = ViewData["total"];
+    dynamic vehicles = ViewData["vehicles"];
+}
+
+
+
+@{ ViewData["title"] = "Fleet"; }
+@{ ViewData["search_placeholder"] = "Search vehicles by plate, type or status"; }
+@{ ViewData["search_action"] = route("admin.vehicles.index"); }
+
+@{
+dynamic link =  (Func<dynamic, dynamic>)((query) => route("admin.vehicles.index", ArrayFilter(ArrayMerge(Only(request(), "type", "status", "sort", "q"), query),  (Func<dynamic, dynamic>)((v) => v != null && v != ""))));
+dynamic sorts = TruckLink.Controllers.Admin.VehicleController.SORTS;
+dynamic icons = TruckLink.Models.Vehicle.ICONS;
+dynamic menuStyle = "position:absolute;right:0;top:calc(100% + 8px);border-top:1.5px solid var(--p);border-radius:9px;white-space:nowrap;z-index:20";
+}
+
+@section Content {
+        @if (Truthy(session("status"))) {<text>
+        <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div>@(session("status"))</div></div>
+        </text>}
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>Fleet</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">Fleet Vehicles</h1>
+               <p class="h-sub">@(total) @(Plural("vehicle", total)) registered &#183; @(assigned) currently assigned to a booking</p></div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-out b-md" href="@(route("admin.vehicles.export", Query(request())))" data-export><i class="bi bi-download"></i> Export</a>
+            <a class="btn btn-tl b-md" href="@(route("admin.vehicles.create"))"><i class="bi bi-plus-lg"></i> New Vehicle</a>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mb-3 align-items-center">
+          <a class="@Cls(new Dictionary<string, object?> { ["0"] = "chip text-decoration-none", ["chip-on"] = !At(filters, "type") })" href="@(link(new Dictionary<string, object?> { ["type"] = null, ["page"] = null }))">All types <b>@(total)</b></a>
+          @foreach (var type in TruckLink.Models.Vehicle.TYPES) {<text>
+          <a class="@Cls(new Dictionary<string, object?> { ["0"] = "chip text-decoration-none", ["chip-on"] = At(filters, "type") == type })" href="@(link(new Dictionary<string, object?> { ["type"] = type, ["page"] = null }))"><i class="bi @(At(icons, type))"></i> @(type) <b>@((int)(At(byType, type) ?? 0))</b></a>
+          </text>}
+          <div class="ms-auto d-flex gap-2">
+            <div class="position-relative d-flex">
+              <button type="button" class="chip" data-menu-toggle="status-menu" aria-haspopup="true" aria-expanded="false"><i class="bi bi-funnel"></i> @(At(filters, "status") ?? "Any status")</button>
+              <div class="menu" id="status-menu" hidden style="@(menuStyle)">
+                <a class="@Cls(new Dictionary<string, object?> { ["0"] = "menu-i text-reset text-decoration-none", ["menu-on"] = !At(filters, "status") })" href="@(link(new Dictionary<string, object?> { ["status"] = null, ["page"] = null }))"><span>Any status</span></a>
+                @foreach (var status in TruckLink.Models.Vehicle.STATUSES) {<text>
+                <a class="@Cls(new Dictionary<string, object?> { ["0"] = "menu-i text-reset text-decoration-none", ["menu-on"] = At(filters, "status") == status })" href="@(link(new Dictionary<string, object?> { ["status"] = status, ["page"] = null }))"><span>@(status)</span></a>
+                </text>}
+              </div>
+            </div>
+            <div class="position-relative d-flex">
+              <button type="button" class="chip" data-menu-toggle="sort-menu" aria-haspopup="true" aria-expanded="false"><i class="bi bi-sort-down"></i> @(At(sorts, At(filters, "sort")))</button>
+              <div class="menu" id="sort-menu" hidden style="@(menuStyle)">
+                @foreach (var (key, sortLabel) in Pairs((object?)(sorts))) {<text>
+                <a class="@Cls(new Dictionary<string, object?> { ["0"] = "menu-i text-reset text-decoration-none", ["menu-on"] = At(filters, "sort") == key })" href="@(link(new Dictionary<string, object?> { ["sort"] = key == "plate" ? null : key, ["page"] = null }))"><span>@(sortLabel)</span></a>
+                </text>}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-tl" style="overflow:hidden">
+          <table class="tbl">
+            <thead><tr>
+              <th style="width:34px"><input class="form-check-input" type="checkbox" style="margin:0" data-check-all aria-label="Select all"></th>
+              <th>Plate number</th><th>Vehicle type</th><th>Capacity</th><th>Max weight</th>
+              <th>Temp-controlled</th><th>Status</th><th>Registered</th>
+              <th style="text-align:right">Actions</th>
+            </tr></thead>
+            <tbody>@if (!IsEmpty(vehicles)) {<text>
+@foreach (var vehicle in vehicles) {<text><tr class="@Cls(new Dictionary<string, object?> { ["row-new"] = highlight == vehicle.VehicleId })"><td><input class="form-check-input" type="checkbox" style="margin:0" value="@(vehicle.VehicleId)" data-check aria-label="Select @(vehicle.PlateNumber)"></td><td><div class="d-flex align-items-center gap-3"><div class="veh-ic" style="width:38px;height:38px;font-size:17px"><i class="bi @(vehicle.Icon)"></i></div><div><div class="mono-d" style="font-weight:700">@(vehicle.PlateNumber)</div><div class="kv">@(vehicle.Code)</div></div></div></td><td>@(vehicle.VehicleType)</td><td class="mono-d">@(NumberFormat(vehicle.CapacityVolumeM3, 2)) m&#179;</td><td class="mono-d">@(NumberFormat(vehicle.MaxWeightKg)) kg</td><td>@if (Truthy(vehicle.IsTemperatureControlled)) {<text><span class="pill p-info"><i class="bi bi-snow"></i> Yes</span></text>} else {<text><span class="kv">No</span></text>}</td><td>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = vehicle.VehicleStatus })</td><td class="kv">@(Format(vehicle.CreatedAt, "d M Y"))</td><td style="text-align:right"><div class="d-flex gap-2 justify-content-end"><a class="ib text-decoration-none" href="@(route("admin.vehicles.show", vehicle))" aria-label="View @(vehicle.PlateNumber)"><i class="bi bi-eye"></i></a><a class="ib text-decoration-none" href="@(route("admin.vehicles.edit", vehicle))" aria-label="Edit @(vehicle.PlateNumber)"><i class="bi bi-pencil"></i></a><a class="ib ib-dg text-decoration-none" href="@(route("admin.vehicles.show", new Dictionary<string, object?> { ["0"] = vehicle, ["delete"] = 1 }))" aria-label="Delete @(vehicle.PlateNumber)"><i class="bi bi-trash3"></i></a></div></td></tr></text>}
+</text>} else {<text><tr><td colspan="9" class="kv">No vehicles match these filters.</td></tr></text>}</tbody>
+          </table>
+          @await Html.PartialAsync("~/Views/Shared/_Pager.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["paginator"] = vehicles, ["label"] = Plural("vehicle", Total(vehicles)) }))
+        </div>
+}
+
+@section Scripts {
+<script>
+  (function () {
+    
+    var checks = document.querySelectorAll('[data-check]'), all = document.querySelector('[data-check-all]'), exportLink = document.querySelector('[data-export]');
+    var base = exportLink.href;
+    function sync() {
+      var ids = Array.prototype.filter.call(checks, function (c) { return c.checked; }).map(function (c) { return c.value; });
+      exportLink.href = ids.length ? base + (base.indexOf('?') < 0 ? '?' : '&') + 'ids=' + ids.join(',') : base;
+    }
+    checks.forEach(function (c) { c.addEventListener('change', sync); });
+    all.addEventListener('change', function () { checks.forEach(function (c) { c.checked = all.checked; }); sync(); });
+  })();
+</script>
+}

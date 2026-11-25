@@ -1,0 +1,17 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic open = ViewData["open"];
+}
+
+
+
+@{ ViewData["title"] = "Messages"; }
+
+@section Content {
+        <div class="crumb"><b>Messages</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-4">
+          <div><h1 class="h-page">Messages</h1><p class="h-sub">Talk to the customers of the jobs you drive</p></div>
+        </div>
+        @await Html.PartialAsync("~/Views/Shared/_Chat.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["me"] = "Staff", ["route"] = "staff.messages.show", ["sendRoute"] = "staff.messages.store", ["open"] = open ?? false, ["emptyText"] = "Conversations with customers appear here once you are the driver of a booking." }))
+}

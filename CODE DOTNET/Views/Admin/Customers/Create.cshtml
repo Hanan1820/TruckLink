@@ -1,0 +1,38 @@
+
+@{ Layout = "~/Views/Admin/Crud/FormPage.cshtml"; }
+
+@{
+dynamic page = new Dictionary<string, object?> { ["title"] = "Add a Customer", ["sub"] = "Open an account for a customer who books by phone or at the counter", ["crumbs"] = new object[] { new object[] { "Customers", route("admin.customers.index") } }, ["current"] = "New Customer", ["action"] = route("admin.customers.store"), ["cancel"] = route("admin.customers.index"), ["save"] = "Save Customer", ["editing"] = false, ["search"] = new object[] { "Search customers by name, email, phone or city", route("admin.customers.index") }, ["uses"] = new object[] { new object[] { "Booking requests", "Creates and tracks bookings in the customer app" }, new object[] { "Payments & invoices", "Pays per service and downloads invoices" }, new object[] { "Reviews", "Rates completed bookings" } } };
+}
+
+
+@section Cards {
+            @await Html.PartialAsync("~/Views/Admin/Customers/_Form.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["editing"] = false }))
+}
+
+@section Preview {
+            <div class="card-tl p-4 summary">
+              <div class="cap mb-3">Preview</div>
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="veh-ic"><i class="bi bi-person"></i></div>
+                <div><div style="font-weight:700;font-size:15px" data-preview-name>@((Truthy(Trim(old("first_name") + " " + old("last_name"))) ? Trim(old("first_name") + " " + old("last_name")) : "-"))</div>
+                     <div class="kv" data-preview-city>@((Truthy(old("city")) ? old("city") : "-"))</div></div>
+              </div>
+              <div class="d-flex gap-2"><span class="pill p-ok"><i class="bi bi-check-circle-fill"></i> Active</span><span class="pill p-neu">No bookings yet</span></div>
+            </div>
+}
+
+@section Scripts {
+<script>
+  (function () {
+    var form = document.getElementById('record-form');
+    function val(n) { var f = form.querySelector('[name=' + n + ']'); return f ? f.value.trim() : ''; }
+    function paint() {
+      document.querySelector('[data-preview-name]').textContent = (val('first_name') + ' ' + val('last_name')).trim() || '-';
+      document.querySelector('[data-preview-city]').textContent = val('city') || '-';
+    }
+    form.addEventListener('input', paint);
+    form.addEventListener('change', paint);
+  })();
+</script>
+}

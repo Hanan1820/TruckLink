@@ -1,0 +1,43 @@
+
+@{ Layout = "~/Views/Shared/_CustomerLayout.cshtml"; }
+@{
+    dynamic counts = ViewData["counts"];
+    dynamic services = ViewData["services"];
+    dynamic type = ViewData["type"];
+}
+
+
+
+@{ ViewData["title"] = "Services"; }
+
+@{
+dynamic total = (int)Sum(counts);
+dynamic typeIcons = new Dictionary<string, object?> { ["Transport"] = "bi-truck", ["Value-Added"] = "bi-stars", ["Storage"] = "bi-buildings" };
+dynamic where = new Dictionary<string, object?> { ["Transport"] = "Chosen in step 1 of a new booking", ["Value-Added"] = "Added in step 5 of a new booking", ["Storage"] = "Switched on in step 5 of a new booking" };
+}
+
+@section Content {
+    <div class="page-head"><div><h1 class="h-page">Services &amp; prices</h1><p class="h-sub">Everything TruckLink can do for your move - you pay per service, after we accept your booking</p></div>
+      <a class="btn btn-tl b-md" href="@(route("customer.bookings.create"))"><i class="bi bi-plus-lg"></i> New Booking</a></div>
+    <div class="d-flex gap-2 mb-3 align-items-center">
+      <a class="@Cls(new Dictionary<string, object?> { ["0"] = "chip text-decoration-none", ["chip-on"] = !type })" href="@(FilterUrl(new Dictionary<string, object?> { ["type"] = null }))">All services <b>@(total)</b></a>
+      @foreach (var t in new object[] { "Transport", "Value-Added", "Storage" }) {<text>
+      <a class="@Cls(new Dictionary<string, object?> { ["0"] = "chip text-decoration-none", ["chip-on"] = type == t })" href="@(FilterUrl(new Dictionary<string, object?> { ["type"] = t }))"><i class="bi @(At(typeIcons, t))"></i> @(t) <b>@((int)(At(counts, t) ?? 0))</b></a>
+      </text>}
+    </div>
+    <div class="row g-3">
+      @foreach (var service in services) {<text>
+      <div class="col-6"><div class="pick d-flex gap-3 align-items-center h-100">
+        @if (Truthy(IsSet(At(TruckLink.Models.Service.ILLUSTRATIONS, service.ServiceName)))) {<text>
+        @await Html.PartialAsync((string)TlView(At(TruckLink.Models.Service.ILLUSTRATIONS, service.ServiceName)))
+        </text>} else {<text>
+        <div class="ic-box"><i class="bi @(At(TruckLink.Models.Service.ICONS, service.ServiceName) ?? At(typeIcons, service.ServiceType))"></i></div>
+        </text>}
+        <div style="flex:1"><div style="font-weight:700;font-size:16px">@(service.ServiceName)</div><div class="kv">@(service.Description)</div>
+          <div class="mt-2 d-flex align-items-center gap-2 flex-wrap">@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = service.ServiceType })
+            <span style="font-size:13px;color:var(--mu)">@if ((double)service.BasePrice > 0) {<text>from <b style="color:var(--tx)">@(Sar(service.BasePrice)) SAR</b> · @(service.PricingUnit)</text>} else {<text><b style="color:var(--ok)">Free</b> · @(service.PricingUnit)</text>}</span></div>
+          <div class="kv mt-1"><i class="bi bi-info-circle"></i> @(At(where, service.ServiceType))</div></div>
+      </div></div>
+      </text>}
+    </div>
+}

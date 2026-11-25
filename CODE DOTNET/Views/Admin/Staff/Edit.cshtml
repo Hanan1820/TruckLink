@@ -1,0 +1,31 @@
+
+@{ Layout = "~/Views/Admin/Crud/FormPage.cshtml"; }
+@{
+    dynamic keeps = ViewData["keeps"];
+    dynamic member = ViewData["member"];
+    dynamic upcoming = ViewData["upcoming"];
+}
+
+@{
+dynamic page = new Dictionary<string, object?> { ["title"] = "Edit Staff Member · " + member.FullName, ["sub"] = "Record <span class=\"mono-d\">" + E(member.Code) + "</span> · " + E(member.JobTitle) + " since " + Format(member.HireDate, "d M Y"), ["crumbs"] = new object[] { new object[] { "Staff", route("admin.staff.index") }, new object[] { member.FullName, route("admin.staff.show", member) } }, ["current"] = "Edit", ["action"] = route("admin.staff.update", member), ["cancel"] = route("admin.staff.show", member), ["save"] = "Save Changes", ["editing"] = true, ["search"] = new object[] { "Search staff by name, email, phone or licence", route("admin.staff.index") }, ["recordName"] = "staff record" };
+dynamic refs = All(Pluck(upcoming, "reference"));
+}
+
+
+@section Cards {
+            @await Html.PartialAsync("~/Views/Admin/Staff/_Form.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["editing"] = true }))
+}
+
+@section SideEffect {
+            @if (Truthy(IsNotEmpty(upcoming))) {<text>
+            <div class="al a-wn mt-3" data-side-effect data-field="staff_status" data-when-not="Active" hidden><i class="bi bi-exclamation-triangle-fill" style="font-size:18px"></i>
+              <div><b>Side effect of this change</b><div style="margin-top:6px">Setting the status to
+                <b data-side-value></b> will unassign @(member.FirstName) from
+                <b>@(Count(refs)) accepted @(Plural("booking", Count(refs)))</b> (@(Implode(", ", refs))). @(Count(refs) == 1 ? "It" : (Count(refs) == 2 ? "Both" : "All " + Count(refs))) will return to the
+                queue for a new driver.</div></div></div>
+            </text>}
+            @if (Truthy(IsNotEmpty(keeps))) {<text>
+            <div class="al a-in mt-3"><i class="bi bi-info-circle-fill" style="font-size:18px"></i>
+              <div>@(member.FirstName) keeps <b>@(Join(keeps, ", ", " and "))</b>. A warehouse always needs an active keeper, so the job title and status stay as they are until another keeper takes over.</div></div>
+            </text>}
+}

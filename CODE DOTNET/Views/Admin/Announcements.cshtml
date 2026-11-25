@@ -1,0 +1,124 @@
+
+@using C = TruckLink.Controllers.Admin.AnnouncementController
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic counts = ViewData["counts"];
+    dynamic customers = ViewData["customers"];
+    dynamic names = ViewData["names"];
+    dynamic sends = ViewData["sends"];
+    dynamic source = ViewData["source"];
+    dynamic staff = ViewData["staff"];
+    dynamic unread = ViewData["unread"];
+}
+
+
+
+@{ ViewData["title"] = "Announcements"; }
+@{ ViewData["search_placeholder"] = "Search announcements by title or message"; }
+@{ ViewData["search_action"] = route("admin.announcements.index"); }
+
+@{
+dynamic R = typeof(AnnouncementRequest);
+dynamic audience = old("audience", "All customers");
+dynamic chevron = "<i class=\"bi bi-chevron-down\" style=\"position:absolute;right:15px;top:15px;color:var(--s);font-size:12px;pointer-events:none\"></i>";
+}
+
+@section Content {
+        @if (Truthy(session("status"))) {<text>
+        <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div>@(session("status"))</div></div>
+        </text>}
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>Announcements</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">Announcements</h1>
+               <p class="h-sub">Shown in the customer and staff apps and sent by email &#183; @(unread) not read yet</p></div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-tl b-md" href="@(FilterUrl(new Dictionary<string, object?> { ["compose"] = 1 }))" data-modal-open="announce"><i class="bi bi-megaphone"></i> New Announcement</a>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mb-3 align-items-center">
+          @foreach (var (key, label) in Pairs((object?)(C.SOURCES))) {<text>
+          <a class="@Cls(new Dictionary<string, object?> { ["0"] = "chip text-decoration-none", ["chip-on"] = source == key })" href="@(FilterUrl(new Dictionary<string, object?> { ["source"] = key == "admins" ? null : key }))">@(label) <b>@(At(counts, key))</b></a>
+          </text>}
+        </div>
+        <div class="card-tl" style="overflow:hidden">
+          <table class="tbl">
+            <thead><tr><th>Sent</th><th>Announcement</th><th>Type</th><th>To</th><th>Read</th><th>From</th></tr></thead>
+            <tbody>@if (!IsEmpty(sends)) {<text>
+@foreach (var send in sends) {<text>
+              @{
+dynamic to = (send.Recipients == 1 && send.CustomerId ? At(At(names, "customers"), send.CustomerId)?.FullName ?? "A customer" : (send.Recipients == 1 && send.StaffId ? At(At(names, "staff"), send.StaffId)?.FullName ?? "A staff member" : (send.Customers > 0 ? send.Customers + " customers" : send.Staff + " staff members")));   
+}
+              <tr><td class="kv" style="white-space:nowrap">@(Format(Carbon.Parse(send.SentAt), "d M Y, H:i"))</td><td style="max-width:420px"><div style="font-weight:600">@(send.Title)</div><div class="kv">@(Limit(send.Content, 120))</div></td><td><span class="pill p-neu">@(send.AnnouncementType)</span></td><td>@(to)</td><td class="mono-d">@((int)send.ReadCount) / @(send.Recipients)</td><td class="kv">@(send.AdminId ? (At(At(names, "admins"), send.AdminId)?.FullName ?? "-") : "TruckLink")</td></tr>
+            </text>}
+</text>} else {<text><tr><td colspan="6" class="kv">Nothing has been sent yet.</td></tr></text>}</tbody>
+          </table>
+          @await Html.PartialAsync("~/Views/Shared/_Pager.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["paginator"] = sends, ["label"] = Plural("announcement", Total(sends)) }))
+        </div>
+}
+
+@section Modals {
+@{ PushWriter(new System.IO.StringWriter()); }
+  <form method="POST" action="@(route("admin.announcements.store"))">
+    @Html.AntiForgeryToken()
+    <div class="m-head d-flex justify-content-between align-items-start">
+      <div class="d-flex gap-3"><div class="sec-ic"><i class="bi bi-megaphone-fill"></i></div>
+        <div><h2 class="h-card" id="announce-title">New announcement</h2><p class="kv mb-0">Appears in the app and is emailed to every recipient</p></div></div>
+      <i class="bi bi-x-lg" data-modal-close role="button" tabindex="0" aria-label="Close" style="color:var(--mu);font-size:17px;cursor:pointer"></i>
+    </div>
+    <div class="m-body">
+      <div class="row g-3 mb-3">
+        <div class="col-6">@{ PushWriter(new System.IO.StringWriter()); }
+          <div style="position:relative">@Html.Raw(chevron)
+          <select id="audience" name="audience" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("audience") })" style="appearance:none" required data-audience>
+            @foreach (var option in R.AUDIENCES) {<text><option @(audience == option ? "selected" : "")>@(option)</option></text>}
+          </select></div>
+        @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "audience", ["label"] = "Send to", ["required"] = true, ["slot"] = __slot2 })</div>
+        <div class="col-6">@{ PushWriter(new System.IO.StringWriter()); }
+          <div style="position:relative">@Html.Raw(chevron)
+          <select id="announcement_type" name="announcement_type" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("announcement_type") })" style="appearance:none" required>
+            @foreach (var option in R.TYPES) {<text><option @(old("announcement_type", "Service Update") == option ? "selected" : "")>@(option)</option></text>}
+          </select></div>
+        @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "announcement_type", ["label"] = "Type", ["required"] = true, ["slot"] = __slot3 })</div>
+      </div>
+      <div class="mb-3" data-audience-for="One customer" @Html.Raw((audience != "One customer" ? " hidden " : ""))>@{ PushWriter(new System.IO.StringWriter()); }
+        <div style="position:relative">@Html.Raw(chevron)
+        <select id="customer_id" name="customer_id" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("customer_id") })" style="appearance:none" @(audience != "One customer" ? "disabled" : "")>
+          <option value="" disabled @(!old("customer_id") ? "selected" : "")>Select a customer</option>
+          @foreach (var customer in customers) {<text><option value="@(customer.CustomerId)" @((int)old("customer_id") == customer.CustomerId ? "selected" : "")>@(customer.FullName) · @(customer.Email)</option></text>}
+        </select></div>
+      @{ var __slot4 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "customer_id", ["label"] = "Customer", ["required"] = true, ["slot"] = __slot4 })</div>
+      <div class="mb-3" data-audience-for="One staff member" @Html.Raw((audience != "One staff member" ? " hidden " : ""))>@{ PushWriter(new System.IO.StringWriter()); }
+        <div style="position:relative">@Html.Raw(chevron)
+        <select id="staff_id" name="staff_id" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("staff_id") })" style="appearance:none" @(audience != "One staff member" ? "disabled" : "")>
+          <option value="" disabled @(!old("staff_id") ? "selected" : "")>Select a staff member</option>
+          @foreach (var member in staff) {<text><option value="@(member.StaffId)" @((int)old("staff_id") == member.StaffId ? "selected" : "")>@(member.FullName) · @(member.JobTitle)</option></text>}
+        </select></div>
+      @{ var __slot5 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "staff_id", ["label"] = "Staff member", ["required"] = true, ["slot"] = __slot5 })</div>
+      <div class="mb-3">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "title", ["label"] = "Title", ["required"] = true, ["maxlength"] = "100", ["value"] = old("title"), ["placeholder"] = "e.g. Ramadan opening hours" })</div>
+      <div class="mb-1">@{ PushWriter(new System.IO.StringWriter()); }
+        <textarea id="content" name="content" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("content") })" rows="5" required maxlength="500">@(old("content"))</textarea>
+      @{ var __slot6 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "content", ["label"] = "Message", ["required"] = true, ["hint"] = "500 characters at most.", ["slot"] = __slot6 })</div>
+    </div>
+    <div class="m-foot justify-content-end gap-2"><button type="button" class="btn btn-out b-md" data-modal-close>Cancel</button><button type="submit" class="btn btn-tl b-md"><i class="bi bi-send"></i> Send announcement</button></div>
+  </form>
+@{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_Modal.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["id"] = "announce", ["width"] = "680", ["padding"] = "46", ["open"] = errors.Any() || Boolean(request(), "compose"), ["label"] = "announce-title", ["slot"] = __slot1 }))
+}
+
+@section Scripts {
+<script>
+  
+  (function () {
+    var audience = document.querySelector('[data-audience]');
+    function sync() {
+      document.querySelectorAll('[data-audience-for]').forEach(function (box) {
+        var on = box.dataset.audienceFor === audience.value;
+        box.hidden = !on;
+        box.querySelector('select').disabled = !on;
+        box.querySelector('select').required = on;
+      });
+    }
+    audience.addEventListener('change', sync);
+    sync();
+  })();
+</script>
+}

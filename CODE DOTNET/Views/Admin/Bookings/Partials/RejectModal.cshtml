@@ -1,0 +1,40 @@
+
+@{
+    dynamic alternatives = ViewData["alternatives"];
+    dynamic alternativesText = ViewData["alternativesText"];
+    dynamic booking = ViewData["booking"];
+    dynamic defaultMessage = ViewData["defaultMessage"];
+    dynamic reasons = ViewData["reasons"];
+    dynamic warehouse = ViewData["warehouse"];
+}
+
+@{
+dynamic freeStart = StartOfDay(Copy(booking.PickupDatetime));
+dynamic freeEnd = AddDays(Copy(freeStart), TruckLink.Support.Services.StorageCalculator.FREE_DAYS);
+}
+@{ PushWriter(new System.IO.StringWriter()); }
+  <form method="POST" action="@(route("admin.bookings.reject", booking))">
+    @Html.AntiForgeryToken()
+    <div class="m-head d-flex justify-content-between align-items-start">
+      <div class="d-flex gap-3"><div class="sec-ic" style="background:var(--dgb);color:var(--dg)"><i class="bi bi-x-circle-fill"></i></div>
+        <div><h2 class="h-card" id="reject-title">Reject booking request</h2><p class="kv mb-0">@(booking.Reference) · @(booking.Customer.FullName) · @(Sar(booking.TotalAmount)) SAR</p></div></div>
+      <i class="bi bi-x-lg" data-modal-close role="button" tabindex="0" aria-label="Close" style="color:var(--mu);font-size:17px;cursor:pointer"></i>
+    </div>
+    <div class="m-body">
+      <div class="mb-3">@{ PushWriter(new System.IO.StringWriter()); }
+        <div style="position:relative"><i class="bi bi-chevron-down" style="position:absolute;right:15px;top:14px;color:var(--s);font-size:12px;pointer-events:none"></i>
+        <select id="rejection_reason" name="rejection_reason" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("rejection_reason") })" style="appearance:none" required>
+          @foreach (var reason in reasons) {<text><option @(old("rejection_reason", At(reasons, 0)) == reason ? "selected" : "")>@(reason)</option></text>}
+        </select></div>
+      @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "rejection_reason", ["label"] = "Reason for rejection", ["required"] = true, ["hint"] = "Recorded against the booking and visible in the rejection report.", ["slot"] = __slot2 })</div>
+      <div class="mb-3">@{ PushWriter(new System.IO.StringWriter()); }
+        <textarea id="customer_message" name="customer_message" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("customer_message") })" rows="4" required minlength="20" maxlength="@(TruckLink.Support.Services.BookingRejection.MESSAGE_MAX)">@(old("customer_message", defaultMessage))</textarea>
+      @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "customer_message", ["label"] = "Message to the customer", ["required"] = true, ["hint"] = "Sent as an announcement to the customer app and by email.", ["slot"] = __slot3 })</div>
+      @if (Truthy(alternatives)) {<text>
+      <label class="d-flex align-items-start gap-2 mb-3"><input class="form-check-input mt-1" type="checkbox" name="offer_dates" value="1" @(Truthy(old("offer_dates", !errors.Any())) ? "checked" : "") style="width:17px;height:17px;flex-shrink:0"><span style="font-size:13.5px">Offer @(alternativesText) as alternative dates in the message</span></label>
+      </text>}
+      <div class="al a-wn" style="font-size:13.5px"><i class="bi bi-exclamation-triangle-fill" style="font-size:16px"></i><div>@if (Truthy(warehouse)) {<text>Rejecting releases the provisional warehouse slot for <b>@(IsSameMonth(freeStart, freeEnd) ? Format(freeStart, "d") : Format(freeStart, "d M"))–@(Format(freeEnd, "d M"))</b> and cannot be undone.</text>} else {<text> Rejecting cannot be undone.</text>} The customer will need to create a new booking.</div></div>
+    </div>
+    <div class="m-foot justify-content-end gap-2"><button type="button" class="btn btn-out b-md" data-modal-close>Cancel</button><button type="submit" class="btn btn-dg b-md"><i class="bi bi-x-circle"></i> Reject &amp; notify customer</button></div>
+  </form>
+@{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_Modal.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["id"] = "reject", ["width"] = "680", ["padding"] = "46", ["open"] = errors.HasAny(new object[] { "rejection_reason", "customer_message" }), ["label"] = "reject-title", ["slot"] = __slot1 }))

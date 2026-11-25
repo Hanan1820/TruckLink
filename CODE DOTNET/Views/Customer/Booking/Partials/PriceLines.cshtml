@@ -1,0 +1,20 @@
+
+@{
+    dynamic draft = ViewData["draft"];
+    dynamic lines = ViewData["lines"];
+    dynamic vehicleType = ViewData["vehicleType"];
+}
+
+
+
+@{
+dynamic extraDays = extraDays ?? At((draft ?? null)?.StorageQuote(), "billable_days") ?? 0;
+}
+@foreach (var (line, loop) in WithLoop((object?)(lines))) {<text>
+@{
+dynamic service = At(line, "service");
+dynamic label = (service.ServiceType == "Transport" ? service.ServiceName + " - " + vehicleType : (service.ServiceType == "Value-Added" ? service.ServiceName + " × " + At(line, "quantity") : (service.PricingUnit == "first 7 days" ? "Storage - first 7 days" : "Storage - " + extraDays + " extra " + Plural("day", extraDays))));   
+dynamic free = service.ServiceType == "Storage" && (double)At(line, "subtotal") == 0.0;
+}
+<div class="sum-row" @Html.Raw((Truthy(loop.Last) ? " style=\"border-bottom:1px solid var(--line);padding-bottom:14px\" " : ""))><span>@(label)</span>@if (Truthy(free)) {<text><span style="color:var(--ok)">Free</span></text>} else {<text><span>@(Sar(At(line, "subtotal"))) SAR</span></text>}</div>
+</text>}

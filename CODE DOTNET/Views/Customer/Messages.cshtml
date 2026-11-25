@@ -1,0 +1,15 @@
+
+@{ Layout = "~/Views/Shared/_CustomerLayout.cshtml"; }
+@{
+    dynamic open = ViewData["open"];
+}
+
+
+
+@{ ViewData["title"] = "Messages"; }
+
+@section Content {
+    <div class="crumb"><a href="@(route("customer.bookings.index"))" class="text-reset text-decoration-none">My Bookings</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>Messages</b></div>
+    <div class="page-head"><div><h1 class="h-page">Messages</h1><p class="h-sub">Talk to the driver assigned to your booking</p></div></div>
+    @await Html.PartialAsync("~/Views/Shared/_Chat.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["me"] = "Customer", ["route"] = "customer.messages.show", ["sendRoute"] = "customer.messages.store", ["open"] = open ?? false, ["emptyText"] = "Once TruckLink accepts a booking and assigns a driver, you can message them here." }))
+}

@@ -1,0 +1,71 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic chip = ViewData["chip"];
+    dynamic counts = ViewData["counts"];
+    dynamic fresh = ViewData["fresh"];
+    dynamic jobs = ViewData["jobs"];
+    dynamic today = ViewData["today"];
+}
+
+
+
+@{ ViewData["title"] = "My Jobs"; }
+@{ ViewData["search_placeholder"] = "Search my jobs by reference, customer or city"; }
+@{ ViewData["search_action"] = route("staff.jobs.index"); }
+
+@{
+dynamic staff = User(auth("staff"));
+dynamic open = At(counts, "upcoming") + At(counts, "active");
+}
+
+@section Content {
+        @if (Truthy(session("status"))) {<text>
+        <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div>@(session("status"))</div></div>
+        </text>}
+        <div class="crumb"><b>My Jobs</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">Hello, @(staff.FirstName)</h1>
+               <p class="h-sub">@(staff.JobTitle)@if (Truthy(staff.ShiftStartLabel)) {<text> · shift @(staff.ShiftStartLabel)–@(staff.ShiftEndLabel)</text>} · @(today) @(Plural("job", today)) today</p></div>
+          @if (staff.JobTitle == "Driver") {<text>
+          <div class="d-flex gap-2"><a class="btn btn-out-dg b-md" href="@(Current(url()))?issue=1" data-modal-open="vehicle-issue"><i class="bi bi-exclamation-triangle"></i> Report a vehicle issue</a></div>
+          </text>}
+        </div>
+        <div class="row g-3 mb-4">
+          <div class="col-3">@await Html.PartialAsync("~/Views/Shared/_Kpi.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icon"] = "bi-calendar-day", ["colour"] = "--wn", ["value"] = today, ["label"] = "Jobs today" }))</div>
+          <div class="col-3">@await Html.PartialAsync("~/Views/Shared/_Kpi.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icon"] = "bi-clipboard-check", ["value"] = At(counts, "upcoming"), ["label"] = "Upcoming" }))</div>
+          <div class="col-3">@await Html.PartialAsync("~/Views/Shared/_Kpi.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icon"] = "bi-geo-alt", ["colour"] = "--in", ["value"] = At(counts, "active"), ["label"] = "In progress" }))</div>
+          <div class="col-3">@await Html.PartialAsync("~/Views/Shared/_Kpi.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icon"] = "bi-check2-circle", ["colour"] = "--ok", ["value"] = At(counts, "completed"), ["label"] = "Completed" }))</div>
+        </div>
+        <div class="d-flex gap-2 mb-3 align-items-center">
+          <a class="@Cls(new Dictionary<string, object?> { ["0"] = "chip text-decoration-none", ["chip-on"] = !chip })" href="@(FilterUrl(new Dictionary<string, object?> { ["status"] = null }))">To do <b>@(open)</b></a>
+          @foreach (var (key, __v19) in Pairs((object?)(TruckLink.Controllers.Staff.JobController.CHIPS))) {
+dynamic label = At(__v19, 0);<text>
+          <a class="@Cls(new Dictionary<string, object?> { ["0"] = "chip text-decoration-none", ["chip-on"] = chip == key })" href="@(FilterUrl(new Dictionary<string, object?> { ["status"] = key }))">@(label) <b>@(At(counts, key))</b></a>
+          </text>}
+        </div>
+        <div class="card-tl" style="overflow:hidden">
+          <table class="tbl">
+            <thead><tr><th>Job</th><th>Customer</th><th>Route</th><th>Pickup</th><th>Volume</th><th>Vehicle</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              @if (!IsEmpty(jobs)) {<text>
+@foreach (var booking in jobs) {<text>
+              @{
+dynamic @new = InArray(booking.BookingId, fresh, true);
+}
+              <tr class="@Cls(new Dictionary<string, object?> { ["row-new"] = @new })"><td><div class="mono-d" style="font-weight:600;white-space:nowrap">@(booking.Reference)</div>@if (Truthy(@new)) {<text><span class="pill p-pend" style="font-size:11px;padding:3px 9px">New</span></text>}</td><td><div class="d-flex align-items-center gap-2">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = booking.Customer.FirstName, ["last"] = booking.Customer.LastName, ["sm"] = true })@(booking.Customer.FullName)</div></td><td>@(booking.PickupCity) → @(booking.DropoffCity)@if (Truthy(booking.StorageRequest)) {<text><div class="kv"><i class="bi bi-buildings"></i> via @(booking.StorageRequest.Warehouse.WarehouseName)</div></text>}</td><td style="white-space:nowrap">@(Format(booking.PickupDatetime, "d M, H:i"))</td><td class="mono-d">@(NumberFormat(booking.TotalVolumeM3, 2)) m³</td><td class="mono-d">@(booking.Vehicle?.PlateNumber ?? "-")</td><td>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = booking.BookingStatus })</td><td style="text-align:right"><a class="@Cls(new Dictionary<string, object?> { ["0"] = "btn b-sm", ["btn-tl"] = @new, ["btn-out"] = !@new })" href="@(route("staff.jobs.show", booking))">Open</a></td></tr>
+              </text>}
+</text>} else {<text>
+              <tr><td colspan="8" class="kv">@(chip == "completed" ? "No completed jobs yet." : "Nothing to do right now - new jobs appear here as soon as they are assigned to you.")</td></tr>
+              </text>}
+            </tbody>
+          </table>
+          @await Html.PartialAsync("~/Views/Shared/_Pager.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["paginator"] = jobs, ["label"] = Plural("job", Total(jobs)) }))
+        </div>
+}
+
+@if (staff.JobTitle == "Driver") {<text>
+@section Modals {
+@await Html.PartialAsync("~/Views/Staff/Jobs/Partials/IssueModal.cshtml")
+}
+</text>}

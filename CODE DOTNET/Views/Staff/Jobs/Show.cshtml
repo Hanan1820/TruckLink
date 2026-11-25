@@ -1,0 +1,154 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic acknowledged = ViewData["acknowledged"];
+    dynamic booking = ViewData["booking"];
+    dynamic crew = ViewData["crew"];
+    dynamic drives = ViewData["drives"];
+    dynamic next = ViewData["next"];
+}
+
+
+
+
+@{ ViewData["title"] = booking.Reference; }
+@{ ViewData["search_placeholder"] = "Search my jobs by reference, customer or city"; }
+@{ ViewData["search_action"] = route("staff.jobs.index"); }
+
+@{
+dynamic status = booking.BookingStatus;
+dynamic storage = booking.StorageRequest;
+dynamic sequence = ArrayValues(ArrayFilter(TruckLink.Models.Booking.JOB_SEQUENCE,  (Func<dynamic, dynamic>)((s) => s != "In Storage" || storage)));
+dynamic reached = ArraySearch(status, sequence, true);
+dynamic de = errors.GetBag("decline");
+dynamic waiting = next == "Out for Delivery" && status == "In Storage" && storage && storage.StorageStatus != "Released";
+dynamic extras = Filter(booking.BookingServices,  (Func<dynamic, dynamic>)((l) => l.Service.ServiceType == "Value-Added"));
+dynamic actionText = new Dictionary<string, object?> { ["Picked Up"] = "Mark as picked up", ["In Transit"] = "Mark as in transit", ["In Storage"] = "Mark as delivered to the warehouse", ["Out for Delivery"] = "Mark as out for delivery", ["Completed"] = "Mark as delivered" };
+}
+
+@section Content {
+        <div class="crumb"><a href="@(route("staff.jobs.index"))" class="text-reset text-decoration-none">My Jobs</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>@(booking.Reference)</b></div>
+        @if (Truthy(session("status"))) {<text>
+        <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div>@(session("status"))</div></div>
+        </text>}
+        @if (errors.Has("status")) { var message = errors.First("status");<text>
+        <div class="al a-dg mb-4"><i class="bi bi-exclamation-octagon-fill" style="font-size:19px"></i><div>@(message)</div></div>
+        </text>}
+        <div class="d-flex justify-content-between align-items-end mb-4">
+          <div><div class="d-flex align-items-center gap-3"><h1 class="h-page">@(booking.Reference)</h1>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = status, ["style"] = "font-size:13px;padding:7px 15px" })</div>
+            <p class="h-sub">@(booking.PickupCity) → @(booking.DropoffCity) · pickup @(Format(booking.PickupDatetime, "l d M, H:i"))</p></div>
+        </div>
+
+        
+        @if (drives || (status == "Accepted" && !acknowledged)) {<text>
+        <div class="card-tl p-4 mb-4 d-flex align-items-center gap-3" style="border:2px solid var(--p)">
+          <div class="sec-ic"><i class="bi bi-signpost-split"></i></div>
+          <div style="flex:1">
+            @if (status == "Accepted" && !acknowledged) {<text>
+            <div style="font-weight:700;font-size:15px">New job - please confirm</div><div class="kv">Accept it so the operations team knows you will be there@(drives ? ", or decline it with a reason" : "").</div>
+            </text>} else if (Truthy(waiting)) {<text>
+            <div style="font-weight:700;font-size:15px">In the warehouse until @(Format(storage.EndDate, "d M") ?? "release")</div><div class="kv">The keeper records the release first - then you can take the items out for delivery.</div>
+            </text>} else if (Truthy(next)) {<text>
+            <div style="font-weight:700;font-size:15px">Next step: @(next)</div><div class="kv">The customer sees every step in their booking straight away.</div>
+            </text>} else {<text>
+            <div style="font-weight:700;font-size:15px">@(status == "Completed" ? "Job complete" : "Nothing to do")</div><div class="kv">@(status == "Completed" ? "Thank you - this job is delivered." : "This job has no next step for you.")</div>
+            </text>}
+          </div>
+          @if (status == "Accepted" && !acknowledged) {<text>
+          @if (Truthy(drives)) {<text><a class="btn btn-out-dg b-md" href="@(Current(url()))?decline=1" data-modal-open="decline-job"><i class="bi bi-x-circle"></i> Decline</a></text>}
+          <form method="POST" action="@(route("staff.jobs.acknowledge", booking))">@Html.AntiForgeryToken()<button type="submit" class="btn btn-tl b-lg"><i class="bi bi-check-lg"></i> Accept job</button></form>
+          </text>} else if (next && !waiting) {<text>
+          @if (drives && status == "Accepted") {<text><a class="btn btn-out-dg b-md" href="@(Current(url()))?decline=1" data-modal-open="decline-job"><i class="bi bi-x-circle"></i> Decline</a></text>}
+          <form method="POST" action="@(route("staff.jobs.advance", booking))">@Html.AntiForgeryToken()<button type="submit" class="btn btn-tl b-lg"><i class="bi bi-arrow-right-circle"></i> @(At(actionText, next))</button></form>
+          </text>}
+        </div>
+        </text>}
+
+        <div class="row g-4">
+          <div class="col-8">
+            <div class="card-tl p-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-geo-alt"></i></div><div><h2 class="h-card">Route &amp; schedule</h2><p class="kv mb-0">@(Format(booking.PickupDatetime, "l, d F Y"))</p></div></div>
+              <div class="row g-4">
+                <div class="col-4"><div class="cap mb-2">Pickup · @(Format(booking.PickupDatetime, "H:i"))</div><div style="font-weight:600;font-size:14.5px">@(booking.PickupAddress)</div><div class="kv">@(booking.PickupCity)</div></div>
+                <div class="col-4"><div class="cap mb-2">Drop-off · expected @(Format(booking.ExpectedDeliveryDatetime, "d M, H:i"))</div><div style="font-weight:600;font-size:14.5px">@(booking.DropoffAddress)</div><div class="kv">@(booking.DropoffCity)</div></div>
+                <div class="col-4"><div class="cap mb-2">Notes from the customer</div><div class="kv">@((Truthy(booking.CustomerNotes) ? booking.CustomerNotes : "-"))</div></div>
+              </div>
+            </div>
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-box-seam"></i></div><div><h2 class="h-card">Items</h2><p class="kv mb-0">@(Count(booking.Items)) @(Plural("item", Count(booking.Items))) · @(NumberFormat(booking.TotalVolumeM3, 2)) m³ · ~@(NumberFormat(Sum(booking.Items,  (Func<dynamic, dynamic>)((i) => (double)i.EstimatedWeightKg)))) kg</p></div></div>
+              <table class="tbl">
+                <thead><tr><th colspan="2" style="padding-left:0">Item</th><th>Dimensions (L×W×H)</th><th>Volume</th><th style="padding-right:0">Weight</th></tr></thead>
+                <tbody>
+                  @foreach (var item in booking.Items) {<text>
+                  <tr><td style="width:74px;padding-left:0;padding-right:0">@await Html.PartialAsync("~/Views/Customer/Booking/Partials/ItemThumb.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["item"] = item, ["small"] = true }))</td>
+                    <td><b>@(item.ItemName)</b><div class="kv">@(item.Category?.ShortName) · Qty @(item.Quantity)</div></td>
+                    <td class="mono-d">@(item.DimensionsLabel)</td><td class="mono-d">@(NumberFormat(item.EstimatedVolumeM3, 2)) m³</td><td class="mono-d" style="padding-right:0">~@(NumberFormat(item.EstimatedWeightKg)) kg</td></tr>
+                  </text>}
+                </tbody>
+              </table>
+            </div>
+            @if (Truthy(IsNotEmpty(extras))) {<text>
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-tools"></i></div><div><h2 class="h-card">Services to perform</h2><p class="kv mb-0">Booked by the customer on top of the move</p></div></div>
+              @foreach (var line in extras) {<text>
+              <div class="sum-row"><span><i class="bi @(At(TruckLink.Models.Service.ICONS, line.Service.ServiceName) ?? "bi-plus-circle") me-2" style="color:var(--s)"></i>@(line.Service.ServiceName)</span><span>× @(line.Quantity)</span></div>
+              </text>}
+            </div>
+            </text>}
+          </div>
+
+          <div class="col-4">
+            <div class="card-tl p-4 summary">
+              <div class="cap mb-3">Customer</div>
+              <div class="d-flex align-items-center gap-3 mb-3">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = booking.Customer.FirstName, ["last"] = booking.Customer.LastName })
+                <div><div style="font-weight:700">@(booking.Customer.FullName)</div><div class="kv">@(booking.Customer.PhoneDisplay)</div></div></div>
+              @if (Truthy(drives)) {<text><a class="btn btn-out b-md w-100" href="@(route("staff.messages.show", booking))"><i class="bi bi-chat-dots"></i> Message @(booking.Customer.FirstName)</a></text>}
+            </div>
+            <div class="card-tl p-4 mt-4">
+              <div class="cap mb-3">Vehicle &amp; crew</div>
+              <div class="sum-row"><span>Vehicle</span><span>@(booking.Vehicle ? booking.Vehicle.PlateNumber + " · " + booking.Vehicle.VehicleType : "-")</span></div>
+              <div class="sum-row"><span>Driver</span><span>@(booking.Driver?.FullName ?? "-")</span></div>
+              @foreach (var mover in Where(crew, "job_title", "Mover")) {<text>
+              <div class="sum-row"><span>Mover</span><span>@(mover.FullName)</span></div>
+              </text>}
+            </div>
+            @if (Truthy(storage)) {<text>
+            <div class="card-tl p-4 mt-4">
+              <div class="d-flex justify-content-between align-items-center mb-3"><div class="cap">Storage</div>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = storage.StorageStatus })</div>
+              <div class="sum-row"><span>Warehouse</span><span>@(storage.Warehouse.WarehouseName)</span></div>
+              <div class="sum-row"><span>Bay</span><span class="mono-d">@(storage.StorageLocation)</span></div>
+              <div class="sum-row"><span>Planned release</span><span>@(Format(storage.EndDate, "d M Y") ?? "-")</span></div>
+            </div>
+            </text>}
+            <div class="card-tl p-4 mt-4">
+              <div class="cap mb-3">Progress</div>
+              @foreach (var (i, step, loop) in PairsWithLoop((object?)(sequence))) {<text>
+              <div class="tl-item" @Html.Raw((Truthy(loop.Last) ? " style=\"padding-bottom:0\" " : ""))><div class="@Cls(new Dictionary<string, object?> { ["0"] = "tl-dot", ["tl-dot-mu"] = reached == false || i > reached })"></div>
+                <div style="font-weight:600;font-size:14px">@(step)@if (i == reached && status != "Completed") {<text> @{ PushWriter(new System.IO.StringWriter()); }Now@{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = status, ["class"] = "ms-2", ["style"] = "font-size:11px;padding:3px 9px", ["slot"] = __slot1 })</text>}</div></div>
+              </text>}
+            </div>
+          </div>
+        </div>
+}
+
+@if (drives && status == "Accepted") {<text>
+@section Modals {
+@{ PushWriter(new System.IO.StringWriter()); }
+  <form method="POST" action="@(route("staff.jobs.decline", booking))">
+    @Html.AntiForgeryToken()
+    <div class="m-head d-flex justify-content-between align-items-start">
+      <div class="d-flex gap-3"><div class="sec-ic" style="background:var(--dgb);color:var(--dg)"><i class="bi bi-x-circle-fill"></i></div>
+        <div><h2 class="h-card" id="decline-title">Decline this job</h2><p class="kv mb-0">@(booking.Reference) · @(Format(booking.PickupDatetime, "d M, H:i")) · @(booking.PickupCity) → @(booking.DropoffCity)</p></div></div>
+      <i class="bi bi-x-lg" data-modal-close role="button" tabindex="0" aria-label="Close" style="color:var(--mu);font-size:17px;cursor:pointer"></i>
+    </div>
+    <div class="m-body">
+      <div class="mb-3">@{ PushWriter(new System.IO.StringWriter()); }
+        <textarea id="reason" name="reason" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = de.Has("reason") })" rows="3" required minlength="10" maxlength="300" placeholder="e.g. I am off sick on this day.">@(old("reason"))</textarea>
+      @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "reason", ["label"] = "Reason", ["bag"] = "decline", ["required"] = true, ["hint"] = "Sent to the operations team (10–300 characters).", ["slot"] = __slot3 })</div>
+      <div class="al a-wn" style="font-size:13.5px"><i class="bi bi-exclamation-triangle-fill" style="font-size:16px"></i><div>The booking goes back to the queue and the customer is told a new driver is being assigned. This cannot be undone.</div></div>
+    </div>
+    <div class="m-foot justify-content-end gap-2"><button type="button" class="btn btn-out b-md" data-modal-close>Keep the job</button><button type="submit" class="btn btn-dg b-md"><i class="bi bi-x-circle"></i> Decline job</button></div>
+  </form>
+@{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_Modal.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["id"] = "decline-job", ["width"] = "680", ["padding"] = "46", ["open"] = Any(de) || Boolean(request(), "decline"), ["label"] = "decline-title", ["slot"] = __slot2 }))
+}
+</text>}

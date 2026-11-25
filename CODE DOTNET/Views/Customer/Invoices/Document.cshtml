@@ -1,0 +1,41 @@
+
+@{
+    dynamic payment = ViewData["payment"];
+    dynamic service = ViewData["service"];
+}
+
+@{
+dynamic booking = payment.Booking;
+dynamic customer = booking.Customer;
+}
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+@{ ViewData["title"] = payment.InvoiceNumber; }
+@await Html.PartialAsync("~/Views/Shared/_Head.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["shellCss"] = "tl-customer" }))
+<style media="print">[data-no-print]{display:none!important} body{background:#fff!important}</style>
+</head>
+<body style="background:var(--bg)">
+<div style="max-width:760px;margin:40px auto;padding:0 16px">
+  <div class="d-flex justify-content-end mb-3" data-no-print><button type="button" class="btn btn-tl b-md" onclick="window.print()"><i class="bi bi-printer"></i> Print or save as PDF</button></div>
+  <div class="card-tl" style="padding:32px">
+    <div class="d-flex justify-content-between align-items-start pb-4 mb-4" style="border-bottom:1px solid var(--line)">
+      <div><img src="@(asset("img/logo-full-dark.png"))" alt="TruckLink" style="height:34px"><div class="kv mt-2">TruckLink Logistics · Riyadh, Saudi Arabia</div></div>
+      <div style="text-align:right"><h1 class="h-page" style="font-size:24px">Invoice</h1><div class="mono-d" style="font-weight:700">@(payment.InvoiceNumber)</div>
+        <div class="kv">@(Format(payment.TransactionDate, "d M Y, H:i"))</div></div>
+    </div>
+    <div class="row g-4 mb-4">
+      <div class="col-6"><div class="sum-cap mb-2">Billed to</div><div style="font-weight:600">@(customer.FullName)</div>
+        <div class="kv">@(customer.Email)<br>@(customer.PhoneDisplay)<br>@(customer.Address ? customer.Address + ", " : "")@(customer.City)</div></div>
+      <div class="col-6"><div class="sum-cap mb-2">Booking</div><div class="mono-d" style="font-weight:600">@(booking.Reference)</div>
+        <div class="kv">@(booking.PickupCity) → @(booking.DropoffCity)<br>Pickup @(Format(booking.PickupDatetime, "d M Y, H:i"))</div></div>
+    </div>
+    <div class="sum-cap mb-2">Paid for</div>
+    <div class="sum-row"><span>@(service)</span><span>@(Sar(payment.Amount)) SAR</span></div>
+    <div class="sum-row" style="border-bottom:1px solid var(--line);padding-bottom:13px"><span>Payment method</span><span>@(payment.PaymentMethod)@if (Truthy(payment.RefNumber)) {<text> · @(payment.RefNumber)</text>}</span></div>
+    <div class="tot-box mt-3"><span class="t-l">@(payment.PaymentStatus == "Refunded" ? "Refunded" : "Total paid")</span><span class="t-v">@(Sar(payment.Amount)) SAR</span></div>
+    <p class="kv mt-4 mb-0">Thank you for moving with TruckLink. Questions about this invoice: @(config("trucklink.support_phone")) · support@@trucklink.sa</p>
+  </div>
+</div>
+</body>
+</html>

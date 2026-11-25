@@ -1,0 +1,27 @@
+
+@{
+    dynamic current = ViewData["current"];
+    dynamic @base = ViewData["base"] ?? null;
+    dynamic slot = ViewData["slot"]; var attributes = new AttributeBag(ViewData);
+}
+
+
+
+@{
+dynamic steps = new Dictionary<string, object?> { ["service"] = "Service", ["locations"] = "Locations", ["items"] = "Items & Photos", ["measurement"] = "Measurement", ["extras"] = "Services", ["review"] = "Review" };
+dynamic n = 0;
+}
+<div @(Class(attributes, new object[] { "stepbar" }))>
+@foreach (var (slug, title) in Pairs((object?)(steps))) {<text>
+@{
+n++;
+}
+@if (n < current) {<text>
+  @if (Truthy(@base)) {<text><a href="@(@base + "/" + slug)" class="d-flex align-items-center gap-2 text-decoration-none"></text>} else {<text><div class="d-flex align-items-center gap-2"></text>}<div class="st-n s-done"><i class="bi bi-check-lg"></i></div><span class="st-t st-dn">@(title)</span>@if (Truthy(@base)) {<text></a></text>} else {<text></div></text>}<div class="bar-d"></div>
+</text>} else if (n == current) {<text>
+  <div class="d-flex align-items-center gap-2"><div class="st-n s-now">@(n)</div><span class="st-t st-on">@(title)</span></div>@if (n < Count(steps)) {<text><div class="bar"></div></text>}
+</text>} else {<text>
+  <div class="d-flex align-items-center gap-2"><div class="st-n s-next">@(n)</div><span class="st-t">@(title)</span></div>@if (n < Count(steps)) {<text><div class="bar"></div></text>}
+</text>}
+</text>}
+</div>

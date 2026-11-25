@@ -1,0 +1,59 @@
+
+
+
+
+
+
+
+
+
+.btn-tl:hover, .btn-tl:focus-visible { background: var(--pd); border-color: var(--pd); color: #fff; }
+
+.btn-out:hover, .btn-out:focus-visible { background: var(--bg); border-color: var(--pl); color: var(--p); }
+.btn-ghost:hover { color: var(--p); }
+
+.btn-dis, .btn:disabled { cursor: not-allowed; pointer-events: none; }
+
+
+
+.fld:focus, .sel:focus { outline: 0; border-color: var(--p); box-shadow: 0 0 0 1px var(--p); }
+
+.fld-err, .fld-err:focus { border-color: var(--dg); box-shadow: 0 0 0 .5px var(--dg); }
+.fld:disabled { background: #F3F6F9; color: #7E8A99; border-color: var(--line); }
+
+
+label.pick, .pick[role="button"] { cursor: pointer; }
+
+
+
+.btn:focus-visible { outline: 3px solid #B4C4D6; outline-offset: 2px; }
+
+
+
+
+
+
+
+.btn.btn-tl:active { background: var(--pd); border-color: var(--pd); color: #fff; }
+.btn.btn-out:active { background: var(--bg); border-color: var(--pl); color: var(--p); }
+.btn.btn-ghost:focus-visible, .btn.btn-ghost:active { background: transparent; border-color: transparent; color: var(--p); }
+.btn.btn-ok:hover, .btn.btn-ok:focus-visible, .btn.btn-ok:active { background: var(--ok); border-color: var(--ok); color: #fff; }
+.btn.btn-dg:hover, .btn.btn-dg:focus-visible, .btn.btn-dg:active { background: var(--dg); border-color: var(--dg); color: #fff; }
+.btn.btn-out-dg:hover, .btn.btn-out-dg:focus-visible, .btn.btn-out-dg:active { background: #fff; border-color: #E3B6B4; color: var(--dg); }
+.btn.btn-light:hover, .btn.btn-light:focus-visible, .btn.btn-light:active { background: #fff; border-color: #fff; color: var(--p); }
+.btn.btn-ghost-w:hover, .btn.btn-ghost-w:focus-visible, .btn.btn-ghost-w:active { background: transparent; border-color: rgba(255,255,255,.45); color: #fff; }
+.btn.btn-dis, .btn.btn-dis:disabled { background: #EAEEF3; border-color: #EAEEF3; color: #A7B2C0; opacity: 1; }
+
+
+
+
+
+.form-check-input:checked:not([role="switch"]) { background: var(--p); border-color: var(--p); }
+.form-check-input[role="switch"]:checked { background-color: var(--p); border-color: var(--p); }
+
+.form-check-input:focus { border-color: var(--p); box-shadow: 0 0 0 1px var(--p); }
+
+
+
+select.fld:invalid { color: #A7B2C0; }
+select.fld option { color: var(--tx); }

@@ -1,0 +1,18 @@
+
+@{
+    dynamic pendingCount = ViewData["pendingCount"];
+}
+
+<a class="@Cls(new Dictionary<string, object?> { ["0"] = "side-i", ["side-on"] = IsModel(request(), "admin/dashboard*") })" href="@(url("admin/dashboard"))"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
+<a class="@Cls(new Dictionary<string, object?> { ["0"] = "side-i", ["side-on"] = IsModel(request(), "admin/bookings*") })" href="@(url("admin/bookings"))"><i class="bi bi-clipboard-check"></i> Bookings @if (Truthy(pendingCount)) {<text><span class="pill p-pend ms-auto" style="font-size:11px;padding:3px 9px">@(pendingCount)</span></text>}</a>
+<div class="side-cap">Operations</div>
+<a class="@Cls(new Dictionary<string, object?> { ["0"] = "side-i", ["side-on"] = IsModel(request(), "admin/vehicles*") })" href="@(url("admin/vehicles"))"><i class="bi bi-truck"></i> Fleet</a>
+<a class="@Cls(new Dictionary<string, object?> { ["0"] = "side-i", ["side-on"] = IsModel(request(), "admin/staff*") })" href="@(url("admin/staff"))"><i class="bi bi-people"></i> Staff</a>
+<a class="@Cls(new Dictionary<string, object?> { ["0"] = "side-i", ["side-on"] = IsModel(request(), "admin/warehouse*") })" href="@(url("admin/warehouse"))"><i class="bi bi-buildings"></i> Warehouse</a>
+<div class="side-cap">Catalogue</div>
+<a class="@Cls(new Dictionary<string, object?> { ["0"] = "side-i", ["side-on"] = IsModel(request(), "admin/services*") })" href="@(url("admin/services"))"><i class="bi bi-tags"></i> Services</a>
+<a class="@Cls(new Dictionary<string, object?> { ["0"] = "side-i", ["side-on"] = IsModel(request(), "admin/item-categories*") })" href="@(url("admin/item-categories"))"><i class="bi bi-grid-3x3-gap"></i> Item Categories</a>
+<div class="side-cap">Insight</div>
+<a class="@Cls(new Dictionary<string, object?> { ["0"] = "side-i", ["side-on"] = IsModel(request(), "admin/reviews*") })" href="@(url("admin/reviews"))"><i class="bi bi-star"></i> Reviews</a>
+<a class="@Cls(new Dictionary<string, object?> { ["0"] = "side-i", ["side-on"] = IsModel(request(), "admin/reports*") })" href="@(url("admin/reports"))"><i class="bi bi-bar-chart"></i> Reports</a>
+<a class="@Cls(new Dictionary<string, object?> { ["0"] = "side-i", ["side-on"] = IsModel(request(), "admin/announcements*") })" href="@(url("admin/announcements"))"><i class="bi bi-megaphone"></i> Announcements</a>

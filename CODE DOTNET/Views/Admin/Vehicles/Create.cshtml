@@ -1,0 +1,163 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic vehicle = ViewData["vehicle"];
+}
+
+
+
+@{ ViewData["title"] = "Add a Vehicle"; }
+@{ ViewData["search_placeholder"] = "Search vehicles by plate, type or status"; }
+@{ ViewData["search_action"] = route("admin.vehicles.index"); }
+
+@{
+dynamic admin = User(auth("admin"));
+dynamic type = old("vehicle_type", vehicle.VehicleType);
+dynamic temp = old("is_temperature_controlled") != null ? (bool)old("is_temperature_controlled") : vehicle.IsTemperatureControlled;
+dynamic status = old("vehicle_status", vehicle.VehicleStatus);
+dynamic volume = old("capacity_volume_m3", vehicle.CapacityVolumeM3);
+dynamic weight = old("max_weight_kg", vehicle.MaxWeightKg);
+dynamic plate = old("plate_number", vehicle.PlateNumber);
+}
+
+@section Content {
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a> <i class="bi bi-chevron-right" style="font-size:9px"></i>
+          <a href="@(route("admin.vehicles.index"))" class="text-reset text-decoration-none">Fleet</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>New Vehicle</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">Add a Vehicle</h1>
+               <p class="h-sub">Register a new vehicle so it can be recommended and assigned to bookings</p></div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-out b-md" href="@(route("admin.vehicles.index"))">Cancel</a>
+            <button type="submit" form="vehicle-form" class="btn btn-tl b-md"><i class="bi bi-check-lg"></i> Save Vehicle</button>
+          </div>
+        </div>
+        <form id="vehicle-form" method="POST" action="@(route("admin.vehicles.store"))" class="row g-4">
+          @Html.AntiForgeryToken()
+          <div class="col-8">
+            <div class="card-tl p-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-upc-scan"></i></div>
+                <div><h2 class="h-card">Identification</h2>
+                     <p class="kv mb-0">How the vehicle is recognised across the system</p></div></div>
+              <div class="row g-3">
+                <div class="col-6">
+                  @await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "plate_number", ["label"] = "Plate number", ["required"] = true, ["value"] = plate, ["maxlength"] = "20", ["pattern"] = "^[0-9]{1,4} [A-Za-z]{3}$", ["style"] = "text-transform:uppercase", ["autocomplete"] = "off", ["title"] = "Up to 4 digits, a space and 3 letters (e.g. 4821 TRK)" })
+                </div>
+                <div class="col-6">
+                  @{ PushWriter(new System.IO.StringWriter()); }
+                    @await Html.PartialAsync("~/Views/Shared/_Sel.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["name"] = "vehicle_type", ["value"] = type, ["options"] = TruckLink.Models.Vehicle.TypeOptions(), ["placeholder"] = "Select a vehicle type", ["invalid"] = errors.Has("vehicle_type") }))
+                  @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "vehicle_type", ["label"] = "Vehicle type", ["required"] = true, ["slot"] = __slot1 })
+                </div>
+              </div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-box-seam"></i></div>
+                <div><h2 class="h-card">Capacity &amp; capability</h2>
+                     <p class="kv mb-0">Used by the measurement step to recommend a vehicle</p></div></div>
+              <div class="row g-3">
+                <div class="col-6">
+                  @{ PushWriter(new System.IO.StringWriter()); }
+                    <div class="d-flex align-items-center gap-2">
+                      <input class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("capacity_volume_m3") })" id="capacity_volume_m3" name="capacity_volume_m3" type="number" step="0.01" min="0.01" max="9999.99" value="@(volume)" required>
+                      <span class="pill p-neu">m&#179;</span></div>
+                  @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "capacity_volume_m3", ["label"] = "Capacity volume", ["required"] = true, ["slot"] = __slot2 })
+                </div>
+                <div class="col-6">
+                  @{ PushWriter(new System.IO.StringWriter()); }
+                    <div class="d-flex align-items-center gap-2">
+                      <input class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("max_weight_kg") })" id="max_weight_kg" name="max_weight_kg" type="number" step="0.01" min="100" max="40000" value="@(weight)" required>
+                      <span class="pill p-neu">kg</span></div>
+                  @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "max_weight_kg", ["label"] = "Maximum weight", ["required"] = true, ["slot"] = __slot3 })
+                </div>
+                <div class="col-12">
+                  @{ PushWriter(new System.IO.StringWriter()); }
+                    @await Html.PartialAsync("~/Views/Admin/Vehicles/Partials/TempPicks.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["yesText"] = "Refrigerated · needed for sensitive items" }))
+                  @{ var __slot4 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "is_temperature_controlled", ["id"] = "temp_no", ["label"] = "Temperature controlled", ["required"] = true, ["slot"] = __slot4 })
+                </div>
+              </div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-toggle-on"></i></div>
+                <div><h2 class="h-card">Availability</h2>
+                     <p class="kv mb-0">Only <b>Available</b> vehicles can be assigned to a booking</p></div></div>
+              <div class="row g-3">
+                <div class="col-6">
+                  @{ PushWriter(new System.IO.StringWriter()); }
+                    @await Html.PartialAsync("~/Views/Shared/_Sel.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["name"] = "vehicle_status", ["value"] = status, ["options"] = TruckLink.Models.Vehicle.StatusOptions(), ["invalid"] = errors.Has("vehicle_status") }))
+                  @{ var __slot5 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "vehicle_status", ["label"] = "Vehicle status", ["required"] = true, ["slot"] = __slot5 })
+                </div>
+                <div class="col-6">
+                  @await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "registered_by", ["label"] = "Registered by", ["class"] = "fld-dis", ["value"] = admin.FullName + " · " + admin.Code, ["readonly"] = true })
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-4">
+            <div class="card-tl p-4 summary" data-preview>
+              <div class="cap mb-3">Preview</div>
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="veh-ic"><i class="bi @(At(TruckLink.Models.Vehicle.ICONS, type) ?? "bi-truck")" data-preview-icon></i></div>
+                <div><div class="mono-d" style="font-weight:700;font-size:15px" data-preview-plate>@(plate != null && plate != "" ? MbStrtoupper(plate) : "-")</div>
+                     <div class="kv" data-preview-type>@((Truthy(type) ? type : "-"))</div></div>
+              </div>
+              <div class="row g-2">
+                <div class="col-6"><div class="tile"><div class="k">Volume</div>
+                     <div class="v"><span data-preview-volume>@(IsNumeric(volume) ? NumberFormat((double)volume, 2) : "-")</span> <span class="u">m&#179;</span></div></div></div>
+                <div class="col-6"><div class="tile"><div class="k">Max weight</div>
+                     <div class="v"><span data-preview-weight>@(IsNumeric(weight) ? NumberFormat((double)weight) : "-")</span> <span class="u">kg</span></div></div></div>
+              </div>
+              <div class="d-flex gap-2 mt-3">
+                @foreach (var s in TruckLink.Models.Vehicle.STATUSES) {<text>
+                @await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = s, ["icon"] = TruckLink.Models.Vehicle.StatusIcon(s, true), ["data-preview-status"] = $"{s}", ["hidden"] = s != status })
+                </text>}
+                <span class="pill p-neu" data-preview-temp="0" @Html.Raw((Truthy(temp) ? " hidden " : ""))>Standard</span>
+                <span class="pill p-info" data-preview-temp="1" @Html.Raw((!(Truthy(temp)) ? " hidden " : ""))><i class="bi bi-snow"></i> Refrigerated</span>
+              </div>
+            </div>
+
+
+            <div class="card-tl p-4 mt-4">
+              <div class="cap mb-3">Where this record is used</div>
+              <div class="tl-item"><div class="tl-dot"></div><div>
+                <div style="font-weight:600;font-size:14px">Vehicle recommendation</div>
+                <div class="kv">Matched against the measured volume in the booking request</div></div></div>
+              <div class="tl-item"><div class="tl-dot"></div><div>
+                <div style="font-weight:600;font-size:14px">Booking assignment</div>
+                <div class="kv">Selected by the admin when a request is accepted</div></div></div>
+              <div class="tl-item" style="padding-bottom:0"><div class="tl-dot tl-dot-mu"></div><div>
+                <div style="font-weight:600;font-size:14px">Fleet reports</div>
+                <div class="kv">Utilisation and maintenance reporting</div></div></div>
+            </div>
+          </div>
+        </form>
+}
+
+@await Html.PartialAsync("~/Views/Admin/Vehicles/Partials/FormScript.cshtml")
+
+@section Scripts {
+<script>
+  
+  (function () {
+    var form = document.getElementById('vehicle-form'), preview = document.querySelector('[data-preview]');
+    var icons = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TruckLink.Models.Vehicle.ICONS));
+    function val(name) { var f = form.querySelector('[name=' + name + ']:not([type=radio]), [name=' + name + ']:checked'); return f ? f.value.trim() : ''; }
+    function number(v, decimals) {
+      return v === '' || isNaN(v) ? '-' : Number(v).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
+    function paint() {
+      var type = val('vehicle_type'), status = val('vehicle_status'), temp = val('is_temperature_controlled');
+      preview.querySelector('[data-preview-plate]').textContent = val('plate_number').toUpperCase().replace(/\s+/g, ' ') || '-';
+      preview.querySelector('[data-preview-type]').textContent = type || '-';
+      preview.querySelector('[data-preview-icon]').className = 'bi ' + (icons[type] || 'bi-truck');
+      preview.querySelector('[data-preview-volume]').textContent = number(val('capacity_volume_m3'), 2);
+      preview.querySelector('[data-preview-weight]').textContent = number(val('max_weight_kg'), 0);
+      preview.querySelectorAll('[data-preview-status]').forEach(function (p) { p.hidden = p.dataset.previewStatus !== status; });
+      preview.querySelectorAll('[data-preview-temp]').forEach(function (p) { p.hidden = p.dataset.previewTemp !== temp; });
+    }
+    form.addEventListener('input', paint);
+    form.addEventListener('change', paint);
+  })();
+</script>
+}

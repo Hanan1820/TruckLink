@@ -1,0 +1,241 @@
+
+@{ Layout = "~/Views/Shared/_CustomerLayout.cshtml"; }
+@{
+    dynamic categories = ViewData["categories"];
+    dynamic items = ViewData["items"];
+    dynamic photoError = ViewData["photoError"];
+}
+
+
+
+
+
+@{ ViewData["title"] = "New booking"; }
+
+@{
+dynamic count = Count(items);
+dynamic photos = Sum(items,  (Func<dynamic, dynamic>)((i) => Count(i.Photos)));
+dynamic volume = Sum(items,  (Func<dynamic, dynamic>)((i) => (double)i.EstimatedVolumeM3));
+}
+
+@section Content {
+    <div class="page-head"><div><h1 class="h-page">What are we moving?</h1><p class="h-sub">Step 3 of 6 - <span data-sub data-photos="@(photos)">@(count) @(Plural("item", count)) · @(photos) @(Plural("photo", photos))</span></p></div><button type="button" class="btn btn-out b-md" data-modal-open="add-item"><i class="bi bi-plus-lg"></i> Add item</button></div>
+    @await Html.PartialAsync("~/Views/Shared/_Stepbar.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["current"] = 3, ["base"] = url("customer/bookings/create") }))
+    <div class="al a-in mb-3" data-measuring hidden><i class="bi bi-rulers" style="font-size:19px"></i><div><strong>Measuring your items…</strong><br><span data-done>0 of 0 done.</span> This usually takes a few seconds - you can keep adding items while we work.</div></div>
+    <div class="card-tl" style="overflow:hidden" data-item-list>
+      <div class="p-3 px-4 d-flex justify-content-between align-items-center" style="border-bottom:1px solid var(--line);background:#F9FBFC">
+        <div style="font-weight:700;font-size:15px">Items in this booking <span class="pill p-neu ms-2" data-count>@(count)</span></div>
+        <div style="font-size:13px;color:var(--mu)">Total so far <b style="color:var(--tx)">@(NumberFormat(volume, 2)) m³</b></div>
+      </div>
+      @if (!IsEmpty(items)) {<text>
+@foreach (var (item, loop) in WithLoop((object?)(items))) {<text>
+      <div class="p-3 px-4 d-flex align-items-center gap-3" data-item-row @Html.Raw((!(Truthy(loop.Last)) ? " style=\"border-bottom:1px solid var(--line)\" " : ""))>
+        @await Html.PartialAsync("~/Views/Customer/Booking/Partials/ItemThumb.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["item"] = item }))
+        <div style="flex:1"><div style="font-weight:700;font-size:15.5px">@(item.ItemName)</div><div class="kv">@(item.Category?.CategoryName) · Qty @(item.Quantity) · @(Count(item.Photos)) @(Plural("photo", Count(item.Photos)))</div><div class="mono-d mt-1">@(item.DimensionsLabel) · @(NumberFormat(item.EstimatedVolumeM3, 2)) m³</div></div>
+        @{ PushWriter(new System.IO.StringWriter()); }Measured · @(Num(item.AiConfidenceScore, 0))%@{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = "Measured", ["icon"] = "bi-check-circle-fill", ["slot"] = __slot1 })
+        <button type="submit" form="remove-@(item.DraftUid)" class="btn btn-out b-ico" aria-label="Remove @(item.ItemName)"><i class="bi bi-trash3"></i></button>
+      </div>
+      </text>}
+</text>} else {<text>
+      <div class="p-3 px-4 kv" data-empty>No items yet. Add each piece you are moving with a few photos, and we measure it for you.</div>
+      </text>}
+    </div>
+    @foreach (var item in items) {<text><form id="remove-@(item.DraftUid)" method="POST" action="@(route("customer.bookings.create.items.remove", item.DraftUid))" hidden>@Html.AntiForgeryToken() <input type="hidden" name="_method" value="DELETE"> </form></text>}
+    <div class="d-flex justify-content-between mt-4"><a class="btn btn-out b-md" href="@(route("customer.bookings.create.locations"))"><i class="bi bi-arrow-left"></i> Back</a>@if (Truthy(count)) {<text><a class="btn btn-tl b-lg" href="@(route("customer.bookings.create.measurement"))" data-continue>Continue <i class="bi bi-arrow-right"></i></a></text>} else {<text><button type="button" class="btn btn-dis b-lg" disabled data-continue>Continue <i class="bi bi-arrow-right"></i></button></text>}</div>
+
+    
+    <template id="row-measuring"><div class="p-3 px-4 d-flex align-items-center gap-3" data-item-row data-pending style="background:#F9FBFC">
+        <div class="thumb" data-thumb></div>
+        <div style="flex:1"><div style="font-weight:700;font-size:15.5px" data-name></div><div class="kv" data-meta></div>
+          <div class="bar-track mt-2" style="max-width:280px"><div class="bar-fill" style="width:0%;background:var(--in)" data-progress></div></div></div>
+        @await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = "Measuring…", ["icon"] = "bi-rulers" })
+        <button type="button" class="btn btn-out b-ico" data-cancel aria-label="Cancel this item"><i class="bi bi-trash3"></i></button>
+      </div></template>
+    <template id="row-queued"><div class="p-3 px-4 d-flex align-items-center gap-3" data-item-row data-pending>
+        <div class="thumb" data-thumb></div>
+        <div style="flex:1"><div style="font-weight:700;font-size:15.5px" data-name></div><div class="kv" data-meta></div></div>
+        @await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = "Queued", ["icon"] = "bi-hourglass" })
+        <button type="button" class="btn btn-out b-ico" data-cancel aria-label="Cancel this item"><i class="bi bi-trash3"></i></button>
+      </div></template>
+    @foreach (var drawing in new object[] { "sofa", "refrigerator", "dining-set", "boxes" }) {<text><template id="item-art-@(drawing)">@await Html.PartialAsync((string)TlView("svg.item-" + drawing))</template></text>}
+}
+
+@section Modals {
+
+@{ PushWriter(new System.IO.StringWriter()); }
+  <form method="POST" action="@(route("customer.bookings.create.items.add"))" enctype="multipart/form-data" data-add-item>
+    @Html.AntiForgeryToken()
+    <div class="m-head d-flex justify-content-between align-items-start">
+      <div class="d-flex gap-3"><div class="sec-ic"><i class="bi bi-camera"></i></div>
+        <div><h2 class="h-card" id="add-item-title">Add an item</h2><p class="kv mb-0">Photograph it - we size it.</p></div></div>
+      <i class="bi bi-x-lg" data-modal-close role="button" tabindex="0" aria-label="Close" style="color:var(--mu);font-size:17px;cursor:pointer"></i>
+    </div>
+    <div class="m-body">
+      <div class="row g-3">
+        <div class="col-12">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "item_name", ["label"] = "Item name", ["required"] = true, ["maxlength"] = "80", ["placeholder"] = "e.g. Three-seater sofa" })</div>
+        <div class="col-8">@{ PushWriter(new System.IO.StringWriter()); }
+          <select id="category_id" name="category_id" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("category_id") })" style="appearance:none" required>
+            <option value="" disabled @(!old("category_id") ? "selected" : "")>Select a category</option>
+            @foreach (var category in categories) {<text><option value="@(category.CategoryId)" @(old("category_id") == category.CategoryId ? "selected" : "")>@(category.CategoryName)</option></text>}
+          </select>
+        @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "category_id", ["label"] = "Category", ["required"] = true, ["slot"] = __slot3 })</div>
+        <div class="col-4">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "quantity", ["label"] = "Quantity", ["type"] = "number", ["required"] = true, ["min"] = "1", ["max"] = "99", ["value"] = "1" })</div>
+        <div class="col-12">@{ PushWriter(new System.IO.StringWriter()); }
+          <label class="drop d-block mb-0" for="photos" data-drop>
+            <i class="bi bi-cloud-arrow-up" style="font-size:34px;color:var(--s)"></i>
+            <div style="font-size:15px;font-weight:600;margin-top:8px" data-drop-text>Drag photos here or browse</div>
+            <div class="hint">JPG or PNG · up to 10 MB each · maximum 8 photos per item</div>
+          </label>
+          <input id="photos" name="photos[]" type="file" accept=".jpg,.jpeg,.png" multiple required class="visually-hidden">
+        @{ var __slot4 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "photos", ["label"] = "Item photos", ["required"] = true, ["slot"] = __slot4 })
+        @if (!errors.Has("photos") && (photoError = First(Flatten(Collect(errors.Get("photos.*")))))) {<text>
+        <div class="err"><i class="bi bi-exclamation-circle-fill"></i> @(photoError)</div>
+        </text>}
+        <div class="err" data-photo-error hidden><i class="bi bi-exclamation-circle-fill"></i> <span></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="m-foot justify-content-end gap-2"><button type="button" class="btn btn-out b-md" data-modal-close>Cancel</button><button type="submit" class="btn btn-tl b-md"><i class="bi bi-plus-lg"></i> Add item</button></div>
+  </form>
+@{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_Modal.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["id"] = "add-item", ["open"] = errors.HasAny(new object[] { "item_name", "category_id", "quantity", "photos", "photos.*" }), ["label"] = "add-item-title", ["slot"] = __slot2 }))
+}
+
+@section Scripts {
+<script>
+  (function () {
+    var form = document.querySelector('[data-add-item]'), input = document.getElementById('photos');
+    var list = document.querySelector('[data-item-list]'), alertBox = document.querySelector('[data-measuring]');
+    var serverRows = list.querySelectorAll('[data-item-row]').length, queue = [], current = null, finished = 0;
+    var MAX_PHOTOS = 8, MAX_BYTES = 10 * 1024 * 1024;
+
+    
+    var zone = document.querySelector('[data-drop]'), zoneText = document.querySelector('[data-drop-text]');
+    var photoError = document.querySelector('[data-photo-error]');
+    function showFiles() {
+      var n = input.files.length;
+      zoneText.textContent = n ? n + (n === 1 ? ' photo selected' : ' photos selected') : 'Drag photos here or browse';
+    }
+    input.addEventListener('change', showFiles);
+    ['dragover', 'dragenter'].forEach(function (t) { zone.addEventListener(t, function (e) { e.preventDefault(); }); });
+    zone.addEventListener('drop', function (e) { e.preventDefault(); input.files = e.dataTransfer.files; showFiles(); });
+    function photoProblem() {
+      var files = Array.prototype.slice.call(input.files);
+      if (files.length > MAX_PHOTOS) return 'Add up to 8 photos per item.';
+      if (files.some(function (f) { return !/\.(jpe?g|png)$/i.test(f.name); })) return 'Photos must be JPG or PNG.';
+      if (files.some(function (f) { return f.size > MAX_BYTES; })) return 'Each photo can be up to 10 MB.';
+      return null;
+    }
+
+    
+    function drawingFor(name, category) {
+      name = name.toLowerCase();
+      if (/sofa|couch|majlis/.test(name)) return 'sofa';
+      if (/fridge|refrigerator|freezer/.test(name)) return 'refrigerator';
+      if (/table|dining|chair/.test(name)) return 'dining-set';
+      if (/box|carton|bag/.test(name)) return 'boxes';
+      return { 1: 'sofa', 2: 'refrigerator' }[category] || 'boxes';
+    }
+    function pendingRow(state, job) {
+      var row = document.getElementById('row-' + state).content.firstElementChild.cloneNode(true);
+      row.querySelector('[data-name]').textContent = job.name;
+      row.querySelector('[data-meta]').textContent = job.meta;
+      var thumb = row.querySelector('[data-thumb]');
+      if (job.preview) { thumb.innerHTML = '<img alt="" style="width:100%;height:100%;object-fit:cover">'; thumb.firstChild.src = job.preview; }
+      else { thumb.appendChild(document.getElementById('item-art-' + job.drawing).content.cloneNode(true)); }
+      row.querySelector('[data-cancel]').addEventListener('click', function () { cancel(job); });
+      row.dataset.photos = job.photos || 0;
+      if (job.progress) row.querySelector('[data-progress]').style.width = job.progress + '%';
+      return row;
+    }
+    function render() {
+      var rows = list.querySelectorAll('[data-item-row]');
+      rows.forEach(function (r, i) { r.style.borderBottom = i < rows.length - 1 ? '1px solid var(--line)' : ''; });
+      var total = rows.length, done = serverRows + finished;
+      document.querySelector('[data-count]').textContent = total;
+      var sub = document.querySelector('[data-sub]'), photos = Number(sub.dataset.photos);
+      list.querySelectorAll('[data-pending]').forEach(function (r) { photos += Number(r.dataset.photos); });
+      sub.textContent = total + (total === 1 ? ' item' : ' items') + ' · ' + photos + (photos === 1 ? ' photo' : ' photos');
+      alertBox.hidden = !(current || queue.length);
+      alertBox.querySelector('[data-done]').textContent = done + ' of ' + total + ' done.';
+      var go = document.querySelector('[data-continue]');
+      if (current || queue.length) {
+        go.className = 'btn btn-dis b-lg';
+        go.removeAttribute('href');
+        go.innerHTML = '<i class="bi bi-rulers"></i> Measuring…';
+      }
+    }
+
+    
+    function addJob(job) {
+      var empty = list.querySelector('[data-empty]');
+      if (empty) empty.remove();
+      job.row = pendingRow(current ? 'queued' : 'measuring', job);
+      list.appendChild(job.row);
+      current ? queue.push(job) : start(job);
+      render();
+    }
+    function start(job) {
+      current = job;
+      if (job.row.querySelector('.p-neu')) {   
+        var row = pendingRow('measuring', job);
+        job.row.replaceWith(row);
+        job.row = row;
+      }
+      if (!job.data) return;                    
+      var xhr = job.xhr = new XMLHttpRequest();
+      xhr.open('POST', form.action);
+      xhr.setRequestHeader('Accept', 'application/json');
+      xhr.upload.onprogress = function (e) { if (e.lengthComputable) job.row.querySelector('[data-progress]').style.width = Math.round(e.loaded / e.total * 100) + '%'; };
+      xhr.onload = function () {
+        if (xhr.status < 300) { finished++; } else {
+          var msg = 'This item could not be added.';
+          try { var errors = JSON.parse(xhr.responseText).errors; msg = errors[Object.keys(errors)[0]][0]; } catch (e) {}
+          job.row.querySelector('[data-meta]').textContent = msg;
+          job.row.querySelector('[data-meta]').className = 'err';
+        }
+        next();
+      };
+      xhr.onerror = next;
+      xhr.send(job.data);
+    }
+    function next() {
+      current = null;
+      if (queue.length) { start(queue.shift()); render(); return; }
+      render();
+      if (finished) location.reload();         
+    }
+    function cancel(job) {
+      if (job === current) { job.xhr && job.xhr.abort(); job.row.remove(); next(); return; }
+      queue.splice(queue.indexOf(job), 1);
+      job.row.remove();
+      render();
+    }
+
+    form.addEventListener('submit', function (e) {
+      var problem = photoProblem();
+      photoError.hidden = !problem;
+      photoError.querySelector('span').textContent = problem || '';
+      if (problem) { e.preventDefault(); return; }
+      if (!window.FormData || !window.XMLHttpRequest) return;   
+      e.preventDefault();
+      var category = form.category_id.options[form.category_id.selectedIndex];
+      var qty = form.quantity.value, files = input.files.length;
+      addJob({
+        name: form.item_name.value,
+        meta: category.text + ' · Qty ' + qty + ' · ' + files + (files === 1 ? ' photo' : ' photos'),
+        preview: files ? URL.createObjectURL(input.files[0]) : null,
+        drawing: drawingFor(form.item_name.value, category.value),
+        photos: files,
+        data: new FormData(form),
+      });
+      form.reset();
+      showFiles();
+      form.closest('[data-modal]').hidden = true;
+      document.body.classList.remove('overflow-hidden');
+    });
+
+    
+    window.TruckLinkItems = { demo: function (name, meta, category, photos, progress) { addJob({ name: name, meta: meta, drawing: drawingFor(name, category), photos: photos, progress: progress }); } };
+  })();
+</script>
+}

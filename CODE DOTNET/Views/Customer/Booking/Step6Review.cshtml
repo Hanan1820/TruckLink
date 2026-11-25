@@ -1,0 +1,65 @@
+
+@{ Layout = "~/Views/Shared/_CustomerLayout.cshtml"; }
+@{
+    dynamic draft = ViewData["draft"];
+}
+
+
+
+
+
+@{ ViewData["title"] = "New booking"; }
+
+@{
+dynamic pickup = draft.PickupAt();
+dynamic delivery = draft.ExpectedDelivery();
+dynamic lines = draft.Lines();
+dynamic quote = draft.StorageQuote();
+dynamic type = draft.VehicleType();
+dynamic serviceCount = Count(Reject(Collect(lines),  (Func<dynamic, dynamic>)((l) => At(l, "service").ServiceType == "Storage" && At(l, "service").PricingUnit != "first 7 days")));
+dynamic unitWord = new Dictionary<string, object?> { ["Daily"] = "day", ["Weekly"] = "week", ["Monthly"] = "month" };
+dynamic release = draft.Storage() ? Carbon.Parse(At(draft.Storage(), "end_date")) : null;
+dynamic storageSpan = release ? (IsSameMonth(pickup, release) ? Format(pickup, "d") : Format(pickup, "d M")) + "–" + Format(release, "d M") : null;
+}
+
+@section Content {
+    <div class="page-head"><div><h1 class="h-page">Review your booking</h1><p class="h-sub">Step 6 of 6 - check everything before you send the request</p></div></div>
+    @await Html.PartialAsync("~/Views/Shared/_Stepbar.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["current"] = 6, ["base"] = url("customer/bookings/create") }))
+    <div class="card-tl mb-3" style="padding:24px">
+      <div class="sec-head"><div class="sec-ic"><i class="bi bi-geo-alt"></i></div><div><h2 class="h-card">Route &amp; schedule</h2><p class="kv mb-0">@(Format(pickup, "l, d F Y"))</p></div></div>
+      <div class="row g-4">
+        <div class="col-4"><div class="sum-cap mb-2">Pickup · @(Format(pickup, "H:i"))</div><div style="font-weight:600;font-size:14.5px">@(Get(draft, "pickup_address"))</div><div class="kv">@(Get(draft, "pickup_city"))</div></div>
+        <div class="col-4"><div class="sum-cap mb-2">Drop-off · expected @(IsSameDay(delivery, pickup) ? Format(delivery, "H:i") : Format(delivery, "d M, H:i"))</div><div style="font-weight:600;font-size:14.5px">@(Get(draft, "dropoff_address"))</div><div class="kv">@(Get(draft, "dropoff_city"))</div></div>
+        <div class="col-4"><div class="sum-cap mb-2">Notes for the crew</div><div class="kv">@((Truthy(Get(draft, "customer_notes")) ? Get(draft, "customer_notes") : "-"))</div></div>
+      </div>
+    </div>
+    <div class="card-tl mb-3" style="padding:24px">
+      <div class="sec-head"><div class="sec-ic"><i class="bi bi-tags"></i></div><div><h2 class="h-card">Services requested</h2><p class="kv mb-0">@(serviceCount) @(Plural("service", serviceCount))@(quote ? " · includes Premium Storage" : "")</p></div></div>
+      <table class="tbl">
+        <tbody>
+          @foreach (var line in lines) {<text>
+          @{
+dynamic service = At(line, "service");
+}
+          @if (service.ServiceType == "Transport") {<text>
+          <tr><td style="padding-left:0"><b>@(service.ServiceName) - @(type)</b><div class="kv">Transport · @(service.PricingUnit)</div></td><td style="text-align:right;padding-right:0;font-weight:700">@(Sar(At(line, "subtotal"))) SAR</td></tr>
+          </text>} else if (service.ServiceType == "Value-Added") {<text>
+          <tr><td style="padding-left:0"><b>@(service.ServiceName)</b> <span class="kv">× @(At(line, "quantity"))</span><div class="kv">Value-added · @(service.PricingUnit)</div></td><td style="text-align:right;padding-right:0;font-weight:700">@(Sar(At(line, "subtotal"))) SAR</td></tr>
+          </text>} else if (service.PricingUnit == "first 7 days") {<text>
+          <tr><td style="padding-left:0"><b>Premium Storage</b> <span class="pill p-ok ms-2" style="font-size:11px">7 days free</span><div class="kv">Storage · @(storageSpan) · @if (Truthy(At(quote, "extension_type"))) {<text>@(At(quote, "billable_days")) billable @(Plural("day", At(quote, "billable_days"))) × @(At(quote, "extension_type") == "Daily" ? Sar(At(quote, "unit_price")) + " SAR" : At(quote, "extension_units") + " " + Plural(At(unitWord, At(quote, "extension_type")), At(quote, "extension_units")) + " × " + Sar(At(quote, "unit_price")) + " SAR")</text>} else {<text> within the free week </text>}</div></td><td style="text-align:right;padding-right:0;font-weight:700">@if (Truthy(At(quote, "fee"))) {<text>@(Sar(At(quote, "fee"))) SAR </text>} else {<text><span style="color:var(--ok)">Free</span></text>}</td></tr>
+          </text>}
+          </text>}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-tl summary" style="padding:24px">
+      <div class="sum-cap mb-3">Price estimate</div>
+      @await Html.PartialAsync("~/Views/Customer/Booking/Partials/PriceLines.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["lines"] = lines, ["vehicleType"] = type }))
+      <div class="tot-box mt-3"><span class="t-l">Total</span><span class="t-v">@(Sar(Total(draft))) SAR</span></div>
+      <div class="al a-in mt-3" style="font-size:13px;padding:12px 14px"><i class="bi bi-info-circle-fill" style="font-size:15px"></i><div>You pay per service <b>after</b> we accept the request. Nothing is charged now.</div></div>
+    </div>
+    <form method="POST" action="@(route("customer.bookings.create.submit"))">
+      @Html.AntiForgeryToken()
+      <div class="d-flex justify-content-between mt-4"><a class="btn btn-out b-md" href="@(route("customer.bookings.create.extras"))"><i class="bi bi-arrow-left"></i> Back</a><button type="submit" class="btn btn-tl b-lg"><i class="bi bi-send"></i> Submit booking request</button></div>
+    </form>
+}

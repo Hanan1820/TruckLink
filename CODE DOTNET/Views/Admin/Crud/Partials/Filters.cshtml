@@ -1,0 +1,42 @@
+
+@{
+    dynamic chips = ViewData["chips"];
+    dynamic menus = ViewData["menus"];
+}
+
+
+
+@{
+dynamic menuStyle = "position:absolute;right:0;top:calc(100% + 8px);border-top:1.5px solid var(--p);border-radius:9px;white-space:nowrap;z-index:20";
+}
+        <div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
+          @{
+dynamic current = (string)Query(request(), At(chips, "param"), "");
+}
+          <a class="@Cls(new Dictionary<string, object?> { ["0"] = "chip text-decoration-none", ["chip-on"] = current == "" })" href="@(FilterUrl(new Dictionary<string, object?> { [At(chips, "param")] = null }))">@(At(At(chips, "all"), 0)) <b>@(At(At(chips, "all"), 1))</b></a>
+          @foreach (var __v8 in At(chips, "items")) {
+dynamic value = At(__v8, 0);
+dynamic label = At(__v8, 1);
+dynamic count = At(__v8, 2);
+dynamic icon = At(__v8, 3);<text>
+          <a class="@Cls(new Dictionary<string, object?> { ["0"] = "chip text-decoration-none", ["chip-on"] = current == (string)value })" href="@(FilterUrl(new Dictionary<string, object?> { [At(chips, "param")] = value }))">@if (Truthy(icon)) {<text><i class="bi @(icon)"></i> </text>}@(label) <b>@(count)</b></a>
+          </text>}
+          <div class="ms-auto d-flex gap-2">
+            @foreach (var menu in menus ?? new object[0]) {<text>
+            @{
+dynamic value = (string)Query(request(), At(menu, "param"), At(menu, "default") ?? "");
+if (!ArrayKeyExists(value, At(menu, "options"))) {
+value = (string)(At(menu, "default") ?? "");
+}
+}
+            <div class="position-relative d-flex">
+              <button type="button" class="chip" data-menu-toggle="@(At(menu, "param"))-menu" aria-haspopup="true" aria-expanded="false"><i class="bi @(At(menu, "icon"))"></i> @(At(At(menu, "options"), value))</button>
+              <div class="menu" id="@(At(menu, "param"))-menu" hidden style="@(menuStyle)">
+                @foreach (var (key, optionLabel) in Pairs((object?)(At(menu, "options")))) {<text>
+                <a class="@Cls(new Dictionary<string, object?> { ["0"] = "menu-i text-reset text-decoration-none", ["menu-on"] = (string)key == value })" href="@(FilterUrl(new Dictionary<string, object?> { [At(menu, "param")] = (string)key == (string)(At(menu, "default") ?? "") ? null : key }))"><span>@(optionLabel)</span></a>
+                </text>}
+              </div>
+            </div>
+            </text>}
+          </div>
+        </div>

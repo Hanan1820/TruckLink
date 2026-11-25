@@ -1,0 +1,152 @@
+
+@{ Layout = "~/Views/Shared/_CustomerLayout.cshtml"; }
+@{
+    dynamic draft = ViewData["draft"];
+    dynamic extensionPrices = ViewData["extensionPrices"];
+    dynamic valueAdded = ViewData["valueAdded"];
+    dynamic warehouseCity = ViewData["warehouseCity"];
+}
+
+
+
+@{ ViewData["title"] = "New booking"; }
+
+@{
+dynamic extras = old("services") ? All(Map(Collect(old("services")),  (Func<dynamic, dynamic>)((s) => !IsEmpty(At(s, "selected")) ? Max(1, (int)(At(s, "quantity") ?? 1)) : 0))) : Get(draft, "extras", new object[0]);
+dynamic storageOn = old("storage", draft.Storage() != null ? "1" : null) == "1";
+dynamic pickup = draft.PickupAt();
+dynamic freeEnd = AddDays(StartOfDay(Copy(pickup)), TruckLink.Support.Services.StorageCalculator.FREE_DAYS);
+dynamic release = old("end_date", At(draft.Storage(), "end_date") ?? ToDateString(freeEnd));
+dynamic quote = pickup ? app(typeof(TruckLink.Support.Services.StorageCalculator)).Quote(pickup, Carbon.Parse(release)) : null;
+dynamic unitWord = new Dictionary<string, object?> { ["Daily"] = "day", ["Weekly"] = "week", ["Monthly"] = "month" };
+dynamic lines = draft.Lines();
+}
+
+@section Content {
+    <div class="page-head"><div><h1 class="h-page">Need anything else?</h1><p class="h-sub">Step 5 of 6 - all optional, charged only if you use them</p></div></div>
+    @await Html.PartialAsync("~/Views/Shared/_Stepbar.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["current"] = 5, ["base"] = url("customer/bookings/create") }))
+    <form method="POST" action="@(route("customer.bookings.create.extras.save"))" data-extras-form>
+    @Html.AntiForgeryToken()
+    <div class="row g-3">
+      <div class="col-8">
+        <div class="card-tl mb-3" style="padding:26px">
+          <div class="sec-head"><div class="sec-ic"><i class="bi bi-tools"></i></div><div><h2 class="h-card">Extra services</h2><p class="kv mb-0">Each is charged separately - pay only for what you use.</p></div></div>
+          
+          @foreach (var (service, loop) in WithLoop((object?)(valueAdded))) {<text>
+          @{
+dynamic qty = (int)(At(extras, service.ServiceId) ?? 0);
+}
+          <div class="@Cls(new Dictionary<string, object?> { ["0"] = "pick d-flex align-items-center gap-3", ["pick-on"] = qty > 0, ["mb-2"] = !loop.Last })" data-extra data-price="@((double)service.BasePrice)" data-name="@(service.ServiceName)">
+            <input class="form-check-input" type="checkbox" name="services[@(service.ServiceId)][selected]" value="1" @(qty > 0 ? "checked" : "") style="margin:0;width:19px;height:19px" aria-label="@(service.ServiceName)">
+            <div class="@Cls(new Dictionary<string, object?> { ["0"] = "ic-box", ["ic-on"] = qty > 0 })"><i class="bi @(At(TruckLink.Models.Service.ICONS, service.ServiceName) ?? "bi-plus-circle")"></i></div>
+            <div style="flex:1"><div style="font-weight:700;font-size:15.5px">@(service.ServiceName)</div><div class="kv">@(service.Description)</div></div>
+            <div class="d-flex align-items-center gap-2"><button type="button" class="btn btn-out b-ico" style="width:34px;height:34px" data-step="-1" aria-label="Fewer"><i class="bi bi-dash-lg"></i></button><input class="fld text-center" style="width:58px;padding:7px" name="services[@(service.ServiceId)][quantity]" value="@(qty)" inputmode="numeric" pattern="[0-9]{1,2}" maxlength="2" aria-label="Quantity"><button type="button" class="btn btn-out b-ico" style="width:34px;height:34px" data-step="1" aria-label="More"><i class="bi bi-plus-lg"></i></button></div>
+            @if (qty > 0) {<text>
+            <div style="width:100px;text-align:right;font-weight:700;font-size:15px" data-line-price>@(Sar(service.BasePrice * qty)) SAR</div>
+            </text>} else {<text>
+            <div style="width:100px;text-align:right;font-weight:600;color:var(--mu);font-size:14px" data-line-price>@(Sar(service.BasePrice)) SAR each</div>
+            </text>}
+          </div>
+          </text>}
+          @if (errors.Has("services.*")) { var message = errors.First("services.*");<text><div class="err mt-2"><i class="bi bi-exclamation-circle-fill"></i> @(message)</div></text>}
+        </div>
+        <div class="card-tl" style="padding:26px;border:2px solid var(--p)" data-storage
+             data-pickup="@(ToDateString(pickup))" data-day="@((double)(At(extensionPrices, "per day") ?? 0))" data-week="@((double)(At(extensionPrices, "per week") ?? 0))" data-month="@((double)(At(extensionPrices, "per month") ?? 0))">
+          <div class="d-flex align-items-start gap-3 mb-4">
+            <input class="form-check-input mt-1" type="checkbox" role="switch" name="storage" value="1" @(Truthy(storageOn) ? "checked" : "") style="margin:0;width:40px;height:22px" aria-label="Add Premium Storage">
+            @await Html.PartialAsync("~/Views/Svg/PremiumStorageBadge.cshtml")
+            <div style="flex:1"><div class="d-flex align-items-center gap-2 mb-1"><span style="font-weight:800;font-size:18px" class="ff">Premium Storage</span><span class="pill p-ok">First 7 days free</span></div><p class="kv mb-0">We keep your items in our @(warehouseCity ? warehouseCity + " " : "")warehouse until your new home is ready.</p></div>
+          </div>
+          <div data-storage-fields @Html.Raw((!(Truthy(storageOn)) ? " hidden " : ""))>
+          <div class="row g-3">
+            <div class="col-3"><label class="lbl">Storage start</label><input class="fld fld-dis" value="@(Format(pickup, "d M Y"))" disabled></div>
+            <div class="col-3"><label class="lbl">Free period ends</label><input class="fld fld-dis" value="@(Format(freeEnd, "d M Y"))" disabled data-free-end></div>
+            <div class="col-3">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "end_date", ["label"] = "Planned release", ["type"] = "date", ["min"] = ToDateString(pickup), ["value"] = release })</div>
+            <div class="col-3"><label class="lbl">Extension</label><input class="fld fld-dis" value="@(quote && At(quote, "extension_type") ? At(quote, "extension_units") + " " + Plural(At(unitWord, At(quote, "extension_type")), At(quote, "extension_units")) + " × " + Sar(At(quote, "unit_price")) + " SAR" : "None")" disabled data-extension></div>
+          </div>
+          <div class="al a-in mt-3" style="font-size:13.5px"><i class="bi bi-calendar-check-fill" style="font-size:16px"></i><div data-storage-note>@if (Truthy(quote)) {<text>Days <b>@(Format(pickup, "j")) – @(Format(freeEnd, "j M")) are free</b>. @if (Truthy(At(quote, "billable_days"))) {<text>You pay only for the @(At(quote, "billable_days")) extra @(Plural("day", At(quote, "billable_days"))), and you can move the release date any time before it.</text>} else {<text> Your planned release is inside the free period, so storage costs nothing.</text>} </text>}</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="card-tl summary" style="padding:24px">
+          <div class="sum-cap mb-3">Price estimate</div>
+          <div data-summary>@await Html.PartialAsync("~/Views/Customer/Booking/Partials/PriceLines.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["lines"] = lines, ["vehicleType"] = draft.VehicleType() }))</div>
+          <div class="tot-box mt-3"><span class="t-l">Total</span><span class="t-v" data-total>@(Sar(Total(draft))) SAR</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="d-flex justify-content-between mt-4"><a class="btn btn-out b-md" href="@(route("customer.bookings.create.measurement"))"><i class="bi bi-arrow-left"></i> Back</a><button type="submit" class="btn btn-tl b-lg">Review booking <i class="bi bi-arrow-right"></i></button></div>
+    </form>
+}
+
+@section Scripts {
+<script>
+  (function () {
+    var sar = function (v) { v = Math.round(v * 100) / 100; return v.toLocaleString('en-US', { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }); };
+    var esc = function (t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
+    var transport = { label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize((At(At(lines, 0), "service").ServiceName ?? "") + " - " + draft.VehicleType())), amount: @((double)(At(At(lines, 0), "subtotal") ?? 0)) };
+    var storage = document.querySelector('[data-storage]'), months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var day = 86400000, pickup = new Date(storage.dataset.pickup + 'T00:00');
+    var freeEnd = new Date(pickup.getTime() + 7 * day);
+
+    
+    function quote(releaseValue) {
+      var release = new Date(releaseValue + 'T00:00'), days = Math.max(0, Math.round((release - freeEnd) / day)), best = null;
+      if (!releaseValue || isNaN(release)) days = 0;
+      [['Daily', 1, 'day', +storage.dataset.day], ['Weekly', 7, 'week', +storage.dataset.week], ['Monthly', 30, 'month', +storage.dataset.month]].forEach(function (t) {
+        if (!days || !t[3]) return;
+        var units = Math.ceil(days / t[1]), fee = units * t[3];
+        if (!best || fee < best.fee) best = { units: units, word: t[2], price: t[3], fee: fee };
+      });
+      return { days: days, best: best };
+    }
+
+    function update() {
+      var lines = [[transport.label, sar(transport.amount) + ' SAR']], total = transport.amount;
+      document.querySelectorAll('[data-extra]').forEach(function (row) {
+        var box = row.querySelector('input[type=checkbox]'), qtyInput = row.querySelector('input.fld'), qty = parseInt(qtyInput.value, 10) || 0, price = +row.dataset.price;
+        if (box.checked && qty < 1) { qty = 1; qtyInput.value = 1; }
+        if (!box.checked) { qty = 0; qtyInput.value = 0; }
+        row.classList.toggle('pick-on', box.checked);
+        row.querySelector('.ic-box').classList.toggle('ic-on', box.checked);
+        var cell = row.querySelector('[data-line-price]');
+        cell.style.cssText = box.checked ? 'width:100px;text-align:right;font-weight:700;font-size:15px' : 'width:100px;text-align:right;font-weight:600;color:var(--mu);font-size:14px';
+        cell.textContent = box.checked ? sar(price * qty) + ' SAR' : sar(price) + ' SAR each';
+        if (box.checked) { lines.push([row.dataset.name + ' × ' + qty, sar(price * qty) + ' SAR']); total += price * qty; }
+      });
+      var on = storage.querySelector('[role=switch]').checked;
+      storage.querySelector('[data-storage-fields]').hidden = !on;
+      if (on) {
+        var release = document.getElementById('end_date').value, q = quote(release), f = function (d) { return d.getDate() + ' ' + months[d.getMonth()]; };
+        lines.push(['Storage - first 7 days', '<span style="color:var(--ok)">Free</span>']);
+        if (q.best) { lines.push(['Storage - ' + q.days + ' extra ' + (q.days === 1 ? 'day' : 'days'), sar(q.best.fee) + ' SAR']); total += q.best.fee; }
+        storage.querySelector('[data-extension]').value = q.best ? q.best.units + ' ' + q.best.word + (q.best.units === 1 ? '' : 's') + ' × ' + sar(q.best.price) + ' SAR' : 'None';
+        storage.querySelector('[data-storage-note]').innerHTML = 'Days <b>' + pickup.getDate() + ' – ' + f(freeEnd) + ' are free</b>. ' + (q.days
+          ? 'You pay only for the ' + q.days + ' extra ' + (q.days === 1 ? 'day' : 'days') + ', and you can move the release date any time before it.'
+          : 'Your planned release is inside the free period, so storage costs nothing.');
+      }
+      document.querySelector('[data-summary]').innerHTML = lines.map(function (l, i) {
+        return '<div class="sum-row"' + (i === lines.length - 1 ? ' style="border-bottom:1px solid var(--line);padding-bottom:14px"' : '') + '><span>' + esc(l[0]) + '</span><span>' + (l[1].charAt(0) === '<' ? l[1] : esc(l[1])) + '</span></div>';
+      }).join('');
+      document.querySelector('[data-total]').textContent = sar(total) + ' SAR';
+    }
+
+    document.querySelectorAll('[data-extra]').forEach(function (row) {
+      var box = row.querySelector('input[type=checkbox]'), qty = row.querySelector('input.fld');
+      row.querySelectorAll('[data-step]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var v = Math.min(20, Math.max(0, (parseInt(qty.value, 10) || 0) + +b.dataset.step));
+          qty.value = v; box.checked = v > 0; update();
+        });
+      });
+      qty.addEventListener('input', function () { box.checked = (parseInt(qty.value, 10) || 0) > 0; update(); });
+      box.addEventListener('change', update);
+      
+      row.addEventListener('click', function (e) { if (!e.target.closest('input, button')) { box.checked = !box.checked; update(); } });
+    });
+    storage.querySelector('[role=switch]').addEventListener('change', update);
+    document.getElementById('end_date').addEventListener('change', update);
+  })();
+</script>
+}

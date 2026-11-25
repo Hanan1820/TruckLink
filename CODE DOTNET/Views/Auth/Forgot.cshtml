@@ -1,0 +1,25 @@
+
+@{ Layout = "~/Views/Shared/_AuthLayout.cshtml"; }
+
+
+
+
+@{ ViewData["title"] = "Forgot password"; }
+@{ ViewData["panel_title"] = "Welcome back."; }
+@{ ViewData["panel_text"] = "Track a move in progress, extend your storage, or start a new booking in a few minutes."; }
+
+@section Content {
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:56px">
+      <form method="POST" action="@(route("password.forgot"))" style="width:404px">
+        @Html.AntiForgeryToken()
+        <h2 class="ff" style="font-size:30px;font-weight:800;color:var(--pd);margin:0 0 6px">Forgot your password?</h2>
+        <p class="kv mb-4">Remembered it? <a href="@(route("login"))" class="text-decoration-none"><b style="color:var(--p)">Sign in</b></a></p>
+        <div class="mb-4">@{ PushWriter(new System.IO.StringWriter()); }
+          <div style="position:relative"><i class="bi bi-envelope" style="position:absolute;left:15px;top:14px;color:var(--s)"></i>
+          <input id="login" name="login" type="text" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("login") })" style="padding-left:43px" value="@(old("login"))" required maxlength="100" autocomplete="username" autofocus></div>
+        @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "login", ["label"] = "Email or phone number", ["slot"] = __slot1 })</div>
+        <button type="submit" class="btn btn-tl b-xl w-100">Send me a code <i class="bi bi-arrow-right"></i></button>
+        <div class="al a-in mt-4" style="font-size:13px;padding:13px 15px"><i class="bi bi-shield-lock-fill" style="font-size:16px"></i><div>We send a one-time password to the phone registered on your account. You then choose a new password.</div></div>
+      </form>
+    </div>
+}

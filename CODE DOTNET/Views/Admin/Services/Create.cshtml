@@ -1,0 +1,48 @@
+
+@{ Layout = "~/Views/Admin/Crud/FormPage.cshtml"; }
+
+@{
+dynamic page = new Dictionary<string, object?> { ["title"] = "Add a Service", ["sub"] = "Add a transport, storage or value-added service and its price", ["crumbs"] = new object[] { new object[] { "Services", route("admin.services.index") } }, ["current"] = "New Service", ["action"] = route("admin.services.store"), ["cancel"] = route("admin.services.index"), ["save"] = "Save Service", ["editing"] = false, ["search"] = new object[] { "Search services by name, type or description", route("admin.services.index") }, ["uses"] = new object[] { new object[] { "Booking wizard", "Offered in steps 1 and 5 while it is Active" }, new object[] { "Pricing", "Base price × quantity on every booking that includes it" }, new object[] { "Revenue report", "Revenue per service" } } };
+}
+
+
+@section Cards {
+            @await Html.PartialAsync("~/Views/Admin/Services/_Form.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["editing"] = false }))
+}
+
+@section Preview {
+            <div class="card-tl p-4 summary">
+              <div class="cap mb-3">Preview</div>
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="veh-ic"><i class="bi bi-tags" data-preview-icon></i></div>
+                <div><div style="font-weight:700;font-size:15px" data-preview-name>@((Truthy(old("service_name")) ? old("service_name") : "-"))</div>
+                     <div class="kv" data-preview-type>@((Truthy(old("service_type")) ? old("service_type") : "-"))</div></div>
+              </div>
+              <div class="row g-2">
+                <div class="col-6"><div class="tile"><div class="k">Price</div>
+                     <div class="v"><span data-preview-price>@(IsNumeric(old("base_price")) ? Sar(old("base_price")) : "-")</span> <span class="u">SAR</span></div></div></div>
+                <div class="col-6"><div class="tile"><div class="k">Unit</div>
+                     <div class="v" style="font-size:16px" data-preview-unit>@((Truthy(old("pricing_unit")) ? old("pricing_unit") : "-"))</div></div></div>
+              </div>
+            </div>
+}
+
+@section Scripts {
+<script>
+  (function () {
+    var form = document.getElementById('record-form'), icons = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TruckLink.Controllers.Admin.ServiceController.TYPE_ICONS));
+    function val(n) { var f = form.querySelector('[name=' + n + ']'); return f ? f.value.trim() : ''; }
+    function paint() {
+      var price = val('base_price');
+      document.querySelector('[data-preview-name]').textContent = val('service_name') || '-';
+      document.querySelector('[data-preview-type]').textContent = val('service_type') || '-';
+      document.querySelector('[data-preview-icon]').className = 'bi ' + (icons[val('service_type')] || 'bi-tags');
+      document.querySelector('[data-preview-price]').textContent = price === '' || isNaN(price) ? '-'
+        : Number(price).toLocaleString('en-US', { minimumFractionDigits: Number(price) % 1 ? 2 : 0, maximumFractionDigits: 2 });
+      document.querySelector('[data-preview-unit]').textContent = val('pricing_unit') || '-';
+    }
+    form.addEventListener('input', paint);
+    form.addEventListener('change', paint);
+  })();
+</script>
+}

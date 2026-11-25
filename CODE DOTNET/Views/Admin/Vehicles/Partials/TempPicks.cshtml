@@ -1,0 +1,25 @@
+
+@{
+    dynamic temp = ViewData["temp"];
+    dynamic yesText = ViewData["yesText"];
+}
+
+
+<div class="row g-3" data-temp-picks>
+  @foreach (var __v13 in new object[] { new object[] { false, "No", "bi-thermometer-half", "Standard cargo area" }, new object[] { true, "Yes", "bi-snow", yesText } }) {
+dynamic val = At(__v13, 0);
+dynamic label = At(__v13, 1);
+dynamic icon = At(__v13, 2);
+dynamic text = At(__v13, 3);<text>
+  @{
+dynamic on = temp == val;
+}
+  <div class="col-6"><label class="@Cls(new Dictionary<string, object?> { ["0"] = "d-flex align-items-center gap-3", ["pick-on"] = on, ["pick"] = !on })" for="temp_@(val ? "yes" : "no")" style="cursor:pointer" data-pick>
+    <input class="visually-hidden" type="radio" id="temp_@(val ? "yes" : "no")" name="is_temperature_controlled" value="@(val ? 1 : 0)" @(Truthy(on) ? "checked" : "") required>
+    <div class="@Cls(new Dictionary<string, object?> { ["0"] = "ic-box", ["ic-on"] = on })"><i class="bi @(icon)"></i></div>
+    <div><div style="font-weight:700;font-size:14.5px">@(label)</div>
+         <div class="kv">@(text)</div></div>
+    <i class="bi bi-check-circle-fill ms-auto" style="color:var(--p);font-size:19px" data-pick-check @Html.Raw((!(Truthy(on)) ? " hidden " : ""))></i>
+  </label></div>
+  </text>}
+</div>

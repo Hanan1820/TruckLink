@@ -1,0 +1,25 @@
+
+@model TruckLink.Support.ViewComponents.FieldModel
+@{
+    var errors = new TruckLink.Support.Helpers.ErrorBag(ViewData).GetBag(Model.Bag);   
+    var fieldError = errors.First(Model.Key);
+    var attrs = string.Join(" ", Model.Attributes.Select(a => a.Value is bool b ? (b ? a.Key : "") : $"{a.Key}=\"{System.Net.WebUtility.HtmlEncode(Convert.ToString(a.Value))}\""));
+}
+<label class="lbl" for="@Model.Id">@Model.Label@if (Model.Required) {<span class="req">*</span>}</label>
+@if (string.IsNullOrEmpty(Model.ControlHtml))
+{
+    var old = (ViewData["old"] as Dictionary<string, string>)?.GetValueOrDefault(Model.Key) ?? Convert.ToString(Model.Value);
+    <input id="@Model.Id" name="@Model.Name" type="@Model.Type" @(Model.Type != "password" ? Html.Raw($"value=\"{System.Net.WebUtility.HtmlEncode(old)}\"") : null) @(Model.Required ? "required" : "") class="fld @(fieldError != null ? "fld-err" : "")" @Html.Raw(attrs)>
+}
+else
+{
+    @Html.Raw(Model.ControlHtml)
+}
+@if (fieldError != null)
+{
+    <div class="err"><i class="bi bi-exclamation-circle-fill"></i> @fieldError</div>
+}
+else if (!string.IsNullOrEmpty(Model.Hint))
+{
+    <div class="hint">@Model.Hint</div>
+}

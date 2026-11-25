@@ -1,0 +1,228 @@
+
+@{ Layout = "~/Views/Shared/_PublicLayout.cshtml"; }
+@{
+    dynamic capacity = ViewData["capacity"];
+    dynamic estimateUrl = ViewData["estimateUrl"];
+    dynamic extension = ViewData["extension"];
+    dynamic moving = ViewData["moving"];
+    dynamic storage = ViewData["storage"];
+    dynamic temperature = ViewData["temperature"];
+    dynamic testimonials = ViewData["testimonials"];
+    dynamic valueAddedFrom = ViewData["valueAddedFrom"];
+}
+
+
+
+@{ ViewData["title"] = "Home"; }
+
+@section Content {
+  
+  <div style="background:linear-gradient(170deg,#F7F9FB 0%,#EDF1F6 100%);padding:76px 64px 84px">
+    <div class="d-flex align-items-center gap-5">
+      <div style="width:520px;flex-shrink:0">
+        <span class="eyebrow"><i class="bi bi-camera-fill"></i> Photograph it - we size it</span>
+        <h1 class="h-hero">Moving day,<br>handled by <span style="color:var(--s)">one</span> company.</h1>
+        <p class="p-lead">Transport, packing, moving crews and warehouse storage - all owned and operated by TruckLink. Send us photos of your furniture and we work out the size, the volume and exactly which truck you need.</p>
+        <div class="d-flex gap-3 mt-4 pt-2">
+          <a class="btn btn-tl b-xl" href="@(estimateUrl)">Get a free estimate <i class="bi bi-arrow-right"></i></a>
+          <a class="btn btn-out b-xl" href="#how-it-works"><i class="bi bi-play-circle"></i> See how it works</a>
+        </div>
+        <div class="d-flex gap-4 mt-5">
+          <div class="d-flex align-items-center gap-2"><div class="tick"><i class="bi bi-check-lg"></i></div><span style="font-size:14px;font-weight:600">No subscription</span></div>
+          <div class="d-flex align-items-center gap-2"><div class="tick"><i class="bi bi-check-lg"></i></div><span style="font-size:14px;font-weight:600">Pay per service</span></div>
+          <div class="d-flex align-items-center gap-2"><div class="tick"><i class="bi bi-check-lg"></i></div><span style="font-size:14px;font-weight:600">7 days free storage</span></div>
+        </div>
+      </div>
+
+      
+      <div style="flex:1">
+        @await Html.PartialAsync("~/Views/Svg/HomeHero.cshtml")
+      </div>
+    </div>
+  </div>
+
+  
+  <div style="padding:44px 64px;border-bottom:1px solid var(--line)">
+    <div class="row text-center">
+      <div class="col-3"><div class="stat-v">1,240+</div><div class="stat-l">Moves completed in Riyadh</div></div>
+      <div class="col-3"><div class="stat-v">4.8</div><div class="stat-l">Average customer rating</div></div>
+      <div class="col-3"><div class="stat-v">98%</div><div class="stat-l">Delivered on the agreed day</div></div>
+      <div class="col-3"><div class="stat-v">100%</div><div class="stat-l">Own fleet and own crews</div></div>
+    </div>
+  </div>
+
+  
+  <div class="sec" id="how-it-works" style="background:var(--bg)">
+    <div class="text-center mb-5">
+      <span class="eyebrow"><i class="bi bi-signpost-2-fill"></i> How it works</span>
+      <h2 class="h-sec">Four steps. No tape measure.</h2>
+      <p class="p-sub" style="max-width:600px;margin-left:auto;margin-right:auto">Most people guess the truck size and get it wrong. We take the guesswork out before you book.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-3"><div class="card-tl h-100" style="padding:28px">
+        @await Html.PartialAsync("~/Views/Svg/How1Photograph.cshtml")
+        <div class="d-flex align-items-center gap-3 mb-2"><div class="step-n">1</div><h3 class="h-card">Photograph</h3></div>
+        <p class="kv mb-0">Snap a photo of each piece - sofa, fridge, boxes. That is all the input we need.</p>
+      </div></div>
+      <div class="col-3"><div class="card-tl h-100" style="padding:28px">
+        @await Html.PartialAsync("~/Views/Svg/How2Measure.cshtml")
+        <div class="d-flex align-items-center gap-3 mb-2"><div class="step-n">2</div><h3 class="h-card">We measure</h3></div>
+        <p class="kv mb-0">The system estimates length, width, height and volume, and sorts each item into a category.</p>
+      </div></div>
+      <div class="col-3"><div class="card-tl h-100" style="padding:28px">
+        @await Html.PartialAsync("~/Views/Svg/How3RightTruck.cshtml")
+        <div class="d-flex align-items-center gap-3 mb-2"><div class="step-n">3</div><h3 class="h-card">Right truck</h3></div>
+        <p class="kv mb-0">We match your load to the correct vehicle - never too small, never paying for space you do not use.</p>
+      </div></div>
+      <div class="col-3"><div class="card-tl h-100" style="padding:28px">
+        @await Html.PartialAsync("~/Views/Svg/How4Move.cshtml")
+        <div class="d-flex align-items-center gap-3 mb-2"><div class="step-n">4</div><h3 class="h-card">We move it</h3></div>
+        <p class="kv mb-0">Our own drivers and crews load, transport and reassemble - and store it if your new place is not ready.</p>
+      </div></div>
+    </div>
+  </div>
+
+  
+  <div class="sec" id="services">
+    <div class="d-flex justify-content-between align-items-end mb-5">
+      <div><span class="eyebrow"><i class="bi bi-tags-fill"></i> Our services</span>
+        <h2 class="h-sec">Everything a move needs,<br>from one accountable company.</h2></div>
+      <p class="p-sub" style="max-width:380px;margin:0">No middlemen, no third-party drivers. You pay separately for each service you actually use.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-3"><div class="card-tl h-100" style="padding:30px">
+        <div class="ic-box mb-4"><i class="bi bi-truck"></i></div>
+        <h3 class="h-card mb-2">Transport &amp; Moving</h3>
+        <p class="kv">Single moves, multi-stop trips and full home or office relocations across the Kingdom.</p>
+        <div class="d-flex align-items-baseline gap-1 mt-4 pt-2" style="border-top:1px solid var(--line)">
+          <span class="ff" style="font-size:26px;font-weight:800;color:var(--pd)">@(Sar(moving?.BasePrice))</span><span class="kv">SAR · from, @(moving?.PricingUnit)</span></div>
+      </div></div>
+      <div class="col-3"><div class="card-tl h-100" style="padding:30px">
+        <div class="ic-box mb-4"><i class="bi bi-thermometer-snow"></i></div>
+        <h3 class="h-card mb-2">Temperature-Controlled</h3>
+        <p class="kv">Refrigerated vans for creams, skincare, perfumes, medicine, sweets and chocolate.</p>
+        <div class="d-flex align-items-baseline gap-1 mt-4 pt-2" style="border-top:1px solid var(--line)">
+          <span class="ff" style="font-size:26px;font-weight:800;color:var(--pd)">@(Sar(temperature?.BasePrice))</span><span class="kv">SAR · from, @(temperature?.PricingUnit)</span></div>
+      </div></div>
+      <div class="col-3"><div class="card-tl h-100" style="padding:30px">
+        <div class="ic-box mb-4"><i class="bi bi-buildings"></i></div>
+        <h3 class="h-card mb-2">Premium Storage</h3>
+        <p class="kv">Our own warehouse holds your furniture between move-out and move-in. First week free.</p>
+        <div class="d-flex align-items-baseline gap-1 mt-4 pt-2" style="border-top:1px solid var(--line)">
+          @if ((double)storage?.BasePrice > 0) {<text>
+          <span class="ff" style="font-size:26px;font-weight:800;color:var(--pd)">@(Sar(storage.BasePrice))</span><span class="kv">SAR · @(storage.PricingUnit)</span></div>
+          </text>} else {<text>
+          <span class="ff" style="font-size:26px;font-weight:800;color:var(--ok)">Free</span><span class="kv">· first 7 days</span></div>
+          </text>}
+      </div></div>
+      <div class="col-3"><div class="card-tl h-100" style="padding:30px">
+        <div class="ic-box mb-4"><i class="bi bi-tools"></i></div>
+        <h3 class="h-card mb-2">Assembly &amp; Packing</h3>
+        <p class="kv">Disassembly and reassembly, boxes and bubble wrap, and extra hands for loading.</p>
+        <div class="d-flex align-items-baseline gap-1 mt-4 pt-2" style="border-top:1px solid var(--line)">
+          <span class="ff" style="font-size:26px;font-weight:800;color:var(--pd)">@(Sar(valueAddedFrom))</span><span class="kv">SAR · from, per service</span></div>
+      </div></div>
+    </div>
+  </div>
+
+  
+  <div class="sec" id="storage" style="background:var(--bg)">
+    <div class="d-flex align-items-center gap-5">
+      <div style="flex:1">
+        @await Html.PartialAsync("~/Views/Svg/HomeStorage.cshtml")
+      </div>
+      <div style="width:540px;flex-shrink:0">
+        <span class="eyebrow"><i class="bi bi-buildings-fill"></i> Premium Storage</span>
+        <h2 class="h-sec">Moving out before<br>you can move in?</h2>
+        <p class="p-lead">It happens to almost everyone. Instead of rushing the move or hunting for a storage unit, we keep your furniture in our own warehouse - <b style="color:var(--tx)">free for the first seven days</b>.</p>
+        <div class="mt-4">
+          <div class="d-flex align-items-start gap-3 mb-3"><div class="tick mt-1"><i class="bi bi-check-lg"></i></div><div><div style="font-weight:700;font-size:15px">No separate contract</div><div class="kv">The storage sits inside the same booking as your move.</div></div></div>
+          <div class="d-flex align-items-start gap-3 mb-3"><div class="tick mt-1"><i class="bi bi-check-lg"></i></div><div><div style="font-weight:700;font-size:15px">Extend by day, week or month</div><div class="kv">@(Sar(At(extension, "day")?.BasePrice)) SAR a day · @(Sar(At(extension, "week")?.BasePrice)) SAR a week · @(Sar(At(extension, "month")?.BasePrice)) SAR a month, after the free period.</div></div></div>
+          <div class="d-flex align-items-start gap-3"><div class="tick mt-1"><i class="bi bi-check-lg"></i></div><div><div style="font-weight:700;font-size:15px">CCTV and fire protection</div><div class="kv">Our own warehouse, our own keeper - not a rented locker.</div></div></div>
+        </div>
+        <a class="btn btn-tl b-lg mt-4" href="@(estimateUrl)">Reserve storage with your move <i class="bi bi-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="sec" id="fleet">
+    <div class="text-center mb-5">
+      <span class="eyebrow"><i class="bi bi-truck-front-fill"></i> Our fleet</span>
+      <h2 class="h-sec">Four vehicles. One of them is right for you.</h2>
+      <p class="p-sub" style="max-width:620px;margin-left:auto;margin-right:auto">Every truck is owned by TruckLink and driven by a TruckLink employee. After we measure your items we tell you which one you need.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-3"><div class="card-tl h-100 text-center" style="padding:28px">
+        <div style="background:var(--tint);border-radius:14px;padding:22px;margin-bottom:20px">
+          @await Html.PartialAsync("~/Views/Svg/FleetSmallPickup.cshtml")
+        </div>
+        <h3 class="h-card mb-1">Small Pickup</h3>
+        <p class="kv mb-3">Boxes, single pieces, quick jobs</p>
+        <span class="pill p-neu">up to @(Round(At(capacity, "Small Pickup") ?? 0)) m³</span>
+      </div></div>
+      <div class="col-3"><div class="card-tl h-100 text-center" style="padding:28px;border:2px solid var(--p)">
+        <div style="background:var(--tint);border-radius:14px;padding:22px;margin-bottom:20px">
+          @await Html.PartialAsync("~/Views/Svg/FleetMediumTruck.cshtml")
+        </div>
+        <h3 class="h-card mb-1">Medium Truck</h3>
+        <p class="kv mb-3">Appliances or a limited-size room</p>
+        <span class="pill p-ok">up to @(Round(At(capacity, "Medium Truck") ?? 0)) m³ · most booked</span>
+      </div></div>
+      <div class="col-3"><div class="card-tl h-100 text-center" style="padding:28px">
+        <div style="background:var(--tint);border-radius:14px;padding:22px;margin-bottom:20px">
+          @await Html.PartialAsync("~/Views/Svg/FleetTempControlled.cshtml")
+        </div>
+        <h3 class="h-card mb-1">Temperature-Controlled Van</h3>
+        <p class="kv mb-3">Heat-sensitive products</p>
+        <span class="pill p-neu">up to @(Round(At(capacity, "Temp-Controlled") ?? 0)) m³ · refrigerated</span>
+      </div></div>
+      <div class="col-3"><div class="card-tl h-100 text-center" style="padding:28px">
+        <div style="background:var(--tint);border-radius:14px;padding:22px;margin-bottom:20px">
+          @await Html.PartialAsync("~/Views/Svg/FleetLargeFreight.cshtml")
+        </div>
+        <h3 class="h-card mb-1">Large Freight Truck</h3>
+        <p class="kv mb-3">Full home or office relocation</p>
+        <span class="pill p-neu">up to @(Round(At(capacity, "Large Freight") ?? 0)) m³</span>
+      </div></div>
+    </div>
+  </div>
+
+  
+  <div class="sec" style="background:var(--bg)">
+    <div class="text-center mb-5">
+      <span class="eyebrow"><i class="bi bi-star-fill"></i> What customers say</span>
+      <h2 class="h-sec">1,240 moves and counting.</h2>
+    </div>
+    <div class="row g-4">
+      
+      @foreach (var t in testimonials) {<text>
+      <div class="col-4"><div class="card-tl h-100" style="padding:30px">
+        <div class="qmark mb-3">"</div>
+        <p style="font-size:15.5px;line-height:1.7;margin:0 0 22px">@(At(t, "text"))</p>
+        <div class="d-flex align-items-center gap-3" style="border-top:1px solid var(--line);padding-top:20px">
+          @await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = At(t, "first"), ["last"] = At(t, "last") })<div><div style="font-weight:700;font-size:14.5px">@(At(t, "first")) @(At(t, "last"))</div><div class="kv">@(At(t, "line"))</div></div>
+          <div class="ms-auto" style="color:#B7791F;font-size:13px">@for (var i = 1; i <= 5; i++) {<text><i class="bi @(At(t, "stars") >= i ? "bi-star-fill" : (At(t, "stars") >= i - 0.5 ? "bi-star-half" : "bi-star"))"></i></text>}</div>
+        </div>
+      </div></div>
+      </text>}
+    </div>
+  </div>
+
+  
+  <div style="background:linear-gradient(115deg,#243343 0%,#324355 55%,#3E5269 100%);padding:72px 64px">
+    <div class="d-flex align-items-center gap-5">
+      <div style="flex:1">
+        <h2 class="ff" style="font-size:40px;font-weight:800;color:#fff;line-height:1.16;margin:0">Find out what your<br>move actually costs.</h2>
+        <p style="font-size:17px;color:#B4C3D3;line-height:1.65;margin:18px 0 0;max-width:520px">Upload a few photos and get a full price breakdown in minutes - transport, labour, packing and storage, itemised. No commitment, nothing charged until we accept your booking.</p>
+        <div class="d-flex gap-3 mt-4 pt-2">
+          <a class="btn btn-light b-xl" href="@(estimateUrl)">Get a free estimate <i class="bi bi-arrow-right"></i></a>
+          <a class="btn btn-ghost-w b-xl" href="tel:@(StrReplace(" ", "", config("trucklink.support_phone")))"><i class="bi bi-telephone"></i> @(config("trucklink.support_phone"))</a>
+        </div>
+      </div>
+      <div style="width:420px;flex-shrink:0">
+        @await Html.PartialAsync("~/Views/Svg/HomeCta.cshtml")
+      </div>
+    </div>
+  </div>
+}

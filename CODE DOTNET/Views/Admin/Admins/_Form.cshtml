@@ -1,0 +1,21 @@
+
+@{
+    dynamic account = ViewData["account"];
+    dynamic editing = ViewData["editing"];
+}
+
+@{
+dynamic roleIcons = TruckLink.Controllers.Admin.AdminAccountController.ROLE_ICONS;
+}
+            @await Html.PartialAsync("~/Views/Admin/Crud/Partials/AccountCards.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["record"] = account, ["editing"] = editing, ["who"] = "admin" }))
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-shield-lock"></i></div>
+                <div><h2 class="h-card">Role</h2>
+                     <p class="kv mb-0">A <b>Super Admin</b> also manages admin accounts; both roles run the whole operation</p></div></div>
+              <div class="row g-3">
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  @await Html.PartialAsync("~/Views/Shared/_Sel.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["name"] = "admin_role", ["value"] = old("admin_role", account.AdminRole), ["invalid"] = errors.Has("admin_role"), ["options"] = All(MapWithKeys(Collect(roleIcons),  (Func<dynamic, dynamic, dynamic>)((i, r) => new Dictionary<string, object?> { [r] = new Dictionary<string, object?> { ["label"] = r, ["icon"] = At(i, 0), ["colour"] = At(i, 1) } }))) }))
+                @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-12", ["name"] = "admin_role", ["label"] = "Role", ["required"] = true, ["track"] = editing, ["original"] = account.AdminRole, ["icon"] = "bi-shield-lock", ["slot"] = __slot1 }))
+              </div>
+            </div>

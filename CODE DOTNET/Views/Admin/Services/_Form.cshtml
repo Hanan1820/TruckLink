@@ -1,0 +1,53 @@
+
+@using C = TruckLink.Controllers.Admin.ServiceController
+@{
+    dynamic editing = ViewData["editing"];
+    dynamic service = ViewData["service"];
+}
+
+@{
+
+}
+            <div class="card-tl p-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-tags"></i></div>
+                <div><h2 class="h-card">Service</h2>
+                     <p class="kv mb-0">How the service is named and described to customers</p></div></div>
+              <div class="row g-3">
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <input class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("service_name") })" id="service_name" name="service_name" value="@(old("service_name", service.ServiceName))" required maxlength="60" autocomplete="off">
+                @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "service_name", ["label"] = "Service name", ["required"] = true, ["track"] = editing, ["original"] = service.ServiceName, ["icon"] = "bi-tag", ["slot"] = __slot1 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  @await Html.PartialAsync("~/Views/Shared/_Sel.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["name"] = "service_type", ["value"] = old("service_type", service.ServiceType), ["placeholder"] = "Select a type", ["invalid"] = errors.Has("service_type"), ["options"] = All(MapWithKeys(Collect(TruckLink.Models.Service.TYPES),  (Func<dynamic, dynamic>)((t) => new Dictionary<string, object?> { [t] = new Dictionary<string, object?> { ["label"] = t, ["icon"] = At(C.TYPE_ICONS, t) } }))) }))
+                @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "service_type", ["label"] = "Service type", ["required"] = true, ["track"] = editing, ["original"] = service.ServiceType, ["icon"] = "bi-diagram-3", ["slot"] = __slot2 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <textarea class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("description") })" id="description" name="description" rows="3" maxlength="255">@(old("description", service.Description))</textarea>
+                @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-12", ["name"] = "description", ["label"] = "Description", ["track"] = editing, ["original"] = service.Description, ["icon"] = "bi-text-paragraph", ["hint"] = "Shown under the service name in the booking wizard (255 characters at most)", ["slot"] = __slot3 }))
+              </div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-cash-stack"></i></div>
+                <div><h2 class="h-card">Price</h2>
+                     <p class="kv mb-0">Changing the price applies to new bookings only - submitted bookings keep their price</p></div></div>
+              <div class="row g-3">
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <div class="d-flex align-items-center gap-2">
+                    <input class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("base_price") })" id="base_price" name="base_price" type="number" step="0.01" min="0" max="99999.99" value="@(old("base_price", service.BasePrice))" required>
+                    <span class="pill p-neu">SAR</span></div>
+                @{ var __slot4 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "base_price", ["label"] = "Base price", ["required"] = true, ["track"] = editing, ["original"] = service.BasePrice, ["format"] = "decimal", ["unit"] = "SAR", ["icon"] = "bi-cash", ["slot"] = __slot4 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  @await Html.PartialAsync("~/Views/Shared/_Sel.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["name"] = "pricing_unit", ["value"] = old("pricing_unit", service.PricingUnit), ["placeholder"] = "Select a unit", ["invalid"] = errors.Has("pricing_unit"), ["options"] = All(MapWithKeys(Collect(TruckLink.Models.Service.UNITS),  (Func<dynamic, dynamic>)((u) => new Dictionary<string, object?> { [u] = new Dictionary<string, object?> { ["label"] = u } }))) }))
+                @{ var __slot5 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "pricing_unit", ["label"] = "Pricing unit", ["required"] = true, ["track"] = editing, ["original"] = service.PricingUnit, ["icon"] = "bi-rulers", ["slot"] = __slot5 }))
+              </div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-toggle-on"></i></div>
+                <div><h2 class="h-card">Availability</h2>
+                     <p class="kv mb-0">Only <b>Active</b> services are offered in the booking wizard</p></div></div>
+              <div class="row g-3">
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  @await Html.PartialAsync("~/Views/Shared/_Sel.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["name"] = "is_active", ["value"] = old("is_active", service.IsActive ? "1" : "0"), ["options"] = All(MapWithKeys(Collect(C.STATUS_ICONS),  (Func<dynamic, dynamic, dynamic>)((i, v) => new Dictionary<string, object?> { [v] = new Dictionary<string, object?> { ["label"] = At(C.STATUS_LABELS, v), ["icon"] = At(i, 0), ["colour"] = At(i, 1), ["boxIcon"] = v == "0" } }))) }))
+                @{ var __slot6 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-12", ["name"] = "is_active", ["label"] = "Status", ["required"] = true, ["track"] = editing, ["original"] = service.IsActive ? "1" : "0", ["display"] = C.STATUS_LABELS, ["icon"] = "bi-toggle-on", ["slot"] = __slot6 }))
+              </div>
+            </div>

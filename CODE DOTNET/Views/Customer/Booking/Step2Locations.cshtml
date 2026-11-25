@@ -1,0 +1,111 @@
+
+@{ Layout = "~/Views/Shared/_CustomerLayout.cshtml"; }
+@{
+    dynamic cities = ViewData["cities"];
+    dynamic draft = ViewData["draft"];
+}
+
+
+
+@{ ViewData["title"] = "New booking"; }
+
+@{
+dynamic value =  (Func<dynamic, dynamic, dynamic>)((key, @default) => old(key, Get(draft, key, @default)));
+dynamic pickupCity = value("pickup_city", User(auth("customer")).City);
+dynamic pickupAt = draft.PickupAt();
+dynamic delivery = draft.ExpectedDelivery();
+dynamic service = draft.Service();
+dynamic itemCount = Count(Items(draft));
+}
+
+@section Content {
+    <div class="page-head"><div><h1 class="h-page">Create a new booking</h1><p class="h-sub">Step 2 of 6 - where and when</p></div></div>
+    @await Html.PartialAsync("~/Views/Shared/_Stepbar.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["current"] = 2, ["base"] = url("customer/bookings/create") }))
+    <form method="POST" action="@(route("customer.bookings.create.locations.save"))">
+    @Html.AntiForgeryToken()
+    <div class="row g-3">
+      <div class="col-8">
+        <div class="card-tl mb-3" style="padding:26px" data-tick-card>
+          <div class="sec-head"><div class="sec-ic"><i class="bi bi-geo-alt"></i></div><div class="d-flex justify-content-between w-100"><div><h2 class="h-card">Pickup</h2><p class="kv mb-0">Where should the crew collect your items?</p></div><div class="tick" @Html.Raw((!(value("pickup_address") && pickupCity) ? " hidden " : ""))><i class="bi bi-check-lg"></i></div></div></div>
+          <div class="row g-3">
+            <div class="col-8">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "pickup_address", ["label"] = "Pickup address", ["required"] = true, ["maxlength"] = "200", ["autocomplete"] = "street-address", ["value"] = value("pickup_address") })</div>
+            <div class="col-4">@{ PushWriter(new System.IO.StringWriter()); }
+              <select id="pickup_city" name="pickup_city" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("pickup_city") })" style="appearance:none" required>
+                <option value="" disabled @(!pickupCity ? "selected" : "")>Select a city</option>
+                @foreach (var city in cities) {<text><option @(pickupCity == city ? "selected" : "")>@(city)</option></text>}
+              </select>
+            @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "pickup_city", ["label"] = "Pickup city", ["required"] = true, ["slot"] = __slot1 })</div>
+          </div>
+          @await Html.PartialAsync("~/Views/Customer/Booking/Partials/MapPicker.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["side"] = "pickup", ["lat"] = value("pickup_lat"), ["lng"] = value("pickup_lng") }))
+        </div>
+        <div class="card-tl mb-3" style="padding:26px" data-tick-card>
+          <div class="sec-head"><div class="sec-ic"><i class="bi bi-flag"></i></div><div class="d-flex justify-content-between w-100"><div><h2 class="h-card">Drop-off</h2><p class="kv mb-0">Where are we delivering to?</p></div><div class="tick" @Html.Raw((!(value("dropoff_address") && value("dropoff_city")) ? " hidden " : ""))><i class="bi bi-check-lg"></i></div></div></div>
+          <div class="row g-3">
+            <div class="col-8">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "dropoff_address", ["label"] = "Drop-off address", ["required"] = true, ["maxlength"] = "200", ["value"] = value("dropoff_address") })</div>
+            <div class="col-4">@{ PushWriter(new System.IO.StringWriter()); }
+              <select id="dropoff_city" name="dropoff_city" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("dropoff_city") })" style="appearance:none" required>
+                <option value="" disabled @(!value("dropoff_city") ? "selected" : "")>Select a city</option>
+                @foreach (var city in cities) {<text><option @(value("dropoff_city") == city ? "selected" : "")>@(city)</option></text>}
+              </select>
+            @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "dropoff_city", ["label"] = "Drop-off city", ["required"] = true, ["slot"] = __slot2 })</div>
+          </div>
+          @await Html.PartialAsync("~/Views/Customer/Booking/Partials/MapPicker.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["side"] = "dropoff", ["lat"] = value("dropoff_lat"), ["lng"] = value("dropoff_lng") }))
+        </div>
+        <div class="card-tl" style="padding:26px" data-tick-card>
+          <div class="sec-head"><div class="sec-ic"><i class="bi bi-calendar3"></i></div><div class="d-flex justify-content-between w-100"><div><h2 class="h-card">Schedule</h2><p class="kv mb-0">Pick a date and time that suits you.</p></div><div class="tick" @Html.Raw((!(value("pickup_date") && value("pickup_time")) ? " hidden " : ""))><i class="bi bi-check-lg"></i></div></div></div>
+          <div class="row g-3">
+            <div class="col-4">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "pickup_date", ["label"] = "Pickup date", ["type"] = "date", ["required"] = true, ["min"] = ToDateString(now()), ["value"] = value("pickup_date") })</div>
+            <div class="col-4">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "pickup_time", ["label"] = "Pickup time", ["type"] = "time", ["required"] = true, ["value"] = value("pickup_time") })</div>
+            <div class="col-4"><label class="lbl">Expected delivery</label><input class="fld fld-dis" value="@(Format(delivery, "d M Y, H:i"))" disabled data-delivery data-storage-end="@(At(draft.Storage(), "end_date") ?? "")"></div>
+          </div>
+          <div class="mt-3">@{ PushWriter(new System.IO.StringWriter()); }
+            <textarea id="customer_notes" name="customer_notes" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("customer_notes") })" rows="2" maxlength="240">@(value("customer_notes"))</textarea>
+          @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@{ PushWriter(new System.IO.StringWriter()); }Notes for the crew <span style="color:var(--mu);font-weight:500">- optional</span>@{ var __slot4 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "customer_notes", ["maxlength"] = "240", ["slot"] = __slot3, ["label"] = __slot4 })</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="card-tl summary" style="padding:24px">
+          <div class="sum-cap mb-3">Your booking</div>
+          <div class="d-flex gap-3 align-items-center pb-3 mb-2" style="border-bottom:1px solid var(--line)">
+            @await Html.PartialAsync("~/Views/Svg/SummarySingleMove.cshtml")
+            <div><div style="font-weight:700">@(service?.ServiceName)</div><div class="kv">@(Sar(service?.BasePrice)) SAR · @(service?.PricingUnit)</div></div></div>
+          <div class="sum-row"><span>Route</span><span>@(Get(draft, "pickup_city") ? Get(draft, "pickup_city") + " → " + Get(draft, "dropoff_city") : "-")</span></div>
+          <div class="sum-row"><span>Pickup</span><span>@(Format(pickupAt, "d M, H:i") ?? "-")</span></div>
+          @if (itemCount == 0) {<text>
+          <div class="sum-row"><span>Items</span><span style="color:#A7B2C0">0</span></div>
+          </text>} else {<text>
+          <div class="sum-row"><span>Items</span><span>@(itemCount) · @(NumberFormat(At(draft.Recommendation(), "volume"), 2)) m³</span></div>
+          </text>}
+          <div class="tot-box mt-3"><span class="t-l">Estimate so far</span><span class="t-v">@(Sar(Total(draft))) SAR</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="d-flex justify-content-between mt-4"><a class="btn btn-out b-md" href="@(route("customer.bookings.create.service"))"><i class="bi bi-arrow-left"></i> Back</a><button type="submit" class="btn btn-tl b-lg">Continue <i class="bi bi-arrow-right"></i></button></div>
+    </form>
+}
+
+@section Scripts {
+<script>
+  (function () {
+    
+    document.querySelectorAll('[data-tick-card]').forEach(function (card) {
+      var tick = card.querySelector('.tick'), fields = card.querySelectorAll('[required]');
+      function check() { tick.hidden = !Array.prototype.every.call(fields, function (f) { return f.value && f.checkValidity(); }); }
+      fields.forEach(function (f) { f.addEventListener('input', check); f.addEventListener('change', check); });
+    });
+
+    
+    var date = document.getElementById('pickup_date'), time = document.getElementById('pickup_time'), out = document.querySelector('[data-delivery]');
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    function update() {
+      var d;
+      if (out.dataset.storageEnd) { d = new Date(out.dataset.storageEnd + 'T14:00'); }
+      else if (date.value && time.value) { d = new Date(date.value + 'T' + time.value); d.setHours(d.getHours() + 5); }
+      out.value = d ? pad(d.getDate()) + ' ' + months[d.getMonth()] + ' ' + d.getFullYear() + ', ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) : '';
+    }
+    date.addEventListener('change', update);
+    time.addEventListener('change', update);
+  })();
+</script>
+}

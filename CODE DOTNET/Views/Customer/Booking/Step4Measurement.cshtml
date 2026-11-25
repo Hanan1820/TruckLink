@@ -1,0 +1,178 @@
+
+@{ Layout = "~/Views/Shared/_CustomerLayout.cshtml"; }
+@{
+    dynamic capacities = ViewData["capacities"];
+    dynamic capacity = ViewData["capacity"];
+    dynamic choices = ViewData["choices"];
+    dynamic draft = ViewData["draft"];
+    dynamic items = ViewData["items"];
+    dynamic load = ViewData["load"];
+    dynamic recommendation = ViewData["recommendation"];
+    dynamic smaller = ViewData["smaller"];
+    dynamic type = ViewData["type"];
+}
+
+
+
+@{ ViewData["title"] = "New booking"; }
+
+@{
+dynamic count = Count(items);
+dynamic volume = At(recommendation, "volume");
+dynamic weight = At(recommendation, "weight");
+dynamic confidence = count ? Round(Avg(items,  (Func<dynamic, dynamic>)((i) => (double)i.AiConfidenceScore))) : 0;
+dynamic tight = load > 85;
+if (Truthy(At(recommendation, "needs_temperature"))) {
+dynamic explanation = "Some of your items need temperature control, so they travel in a refrigerated van.";
+}
+else {
+explanation = "Your " + NumberFormat(volume, 2) + " m³ fits" + (tight ? ", with little room to spare." : " with room to spare.");
+if (type != At(recommendation, "type")) {
+explanation += " You chose a larger vehicle than the recommended " + At(recommendation, "type") + ".";
+}
+else if (Truthy(smaller = (At(TruckLink.Support.Services.VehicleRecommender.SIZE_ORDER, ArraySearch(type, TruckLink.Support.Services.VehicleRecommender.SIZE_ORDER, true) - 1) ?? null))) {
+explanation += (At(At(capacities, smaller), "capacity") ?? 0) < volume ? " A " + smaller + " would be too small for " + NumberFormat(volume, 2) + " m³." : " A " + smaller + " could not carry " + NumberFormat(weight) + " kg.";
+}
+}
+}
+
+@section Content {
+    <div class="page-head"><div><h1 class="h-page">Here is what we measured</h1><p class="h-sub">Step 4 of 6 - check the results and fix anything that looks wrong</p></div></div>
+    @await Html.PartialAsync("~/Views/Shared/_Stepbar.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["current"] = 4, ["base"] = url("customer/bookings/create") }))
+    <div class="al a-ok mb-3"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div><strong>All @(count) @(Plural("item", count)) measured.</strong><br>Total volume @(NumberFormat(volume, 2)) m³ · average confidence @(confidence)%.</div></div>
+    <div class="row g-3">
+      <div class="col-8">
+        <div class="card-tl" style="overflow:hidden">
+          <table class="tbl">
+            <thead><tr><th colspan="2">Item</th><th>Dimensions (L×W×H)</th><th>Volume</th><th>Weight</th><th>Confidence</th><th></th></tr></thead>
+            <tbody>
+              @foreach (var (item, loop) in WithLoop((object?)(items))) {<text>
+              <tr>
+                <td style="@(loop.First ? "width:74px;" : "")padding-right:0">@await Html.PartialAsync("~/Views/Customer/Booking/Partials/ItemThumb.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["item"] = item, ["small"] = true }))</td>
+                <td><b>@(item.ItemName)</b><div class="kv">@(item.Category?.ShortName) · Qty @(item.Quantity)</div></td>
+                <td class="mono-d">@(item.DimensionsLabel)</td><td class="mono-d">@(NumberFormat(item.EstimatedVolumeM3, 2)) m³</td><td class="mono-d">~@(NumberFormat(item.EstimatedWeightKg)) kg</td>
+                <td>@{ PushWriter(new System.IO.StringWriter()); }@(Num(item.AiConfidenceScore, 0))%@{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = "Measured", ["slot"] = __slot1 })</td><td><button type="button" class="btn btn-out b-ico" data-modal-open="correct-item" data-correct="@(JsonEncode(new Dictionary<string, object?> { ["uid"] = item.DraftUid, ["name"] = item.ItemName, ["l"] = Num(item.EstimatedLengthCm), ["w"] = Num(item.EstimatedWidthCm), ["h"] = Num(item.EstimatedHeightCm), ["kg"] = Num(item.EstimatedWeightKg) }))" aria-label="Correct @(item.ItemName)"><i class="bi bi-pencil"></i></button></td></tr>
+              </text>}
+            </tbody>
+          </table>
+          <div class="p-3 px-4 d-flex justify-content-between align-items-center" style="background:#F5F8FA;font-weight:700"><span>Total - @(count) @(Plural("item", count))</span><span class="mono-d" style="font-size:15px;font-weight:700">@(NumberFormat(volume, 2)) m³ · ~@(NumberFormat(weight)) kg</span></div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="card-tl mb-3" style="padding:0;overflow:hidden;border:2px solid var(--p)">
+          <div class="vcard text-center">
+            <div class="sum-cap mb-3">Recommended vehicle</div>
+            @if (type == "Medium Truck") {<text>
+            @await Html.PartialAsync("~/Views/Svg/RecommendMediumTruck.cshtml")
+            </text>} else {<text>
+            <div style="width:176px;margin:0 auto">@await Html.PartialAsync((string)TlView(At(TruckLink.Models.Vehicle.ILLUSTRATIONS, type)))</div>
+            </text>}
+            <div class="ff" style="font-size:20px;font-weight:800;margin-top:6px">@(type)</div>
+            <div class="kv">@(At(TruckLink.Models.Vehicle.BODIES, type)) · @(Num(capacity)) m³ capacity</div>
+          </div>
+          <div style="padding:20px">
+            <div class="d-flex justify-content-between mb-2" style="font-size:13px;font-weight:600"><span>Capacity used</span><span style="color:var(@(tight ? "--wn" : "--ok"))">@(load)%</span></div>
+            <div class="bar-track mb-3"><div class="bar-fill" style="width:@(Min(load, 100))%;background:var(@(tight ? "--wn" : "--ok"))"></div></div>
+            <p class="kv mb-3">@(explanation)</p>
+            @if (Count(choices) > 1) {<text>
+            <button type="button" class="btn btn-out b-sm w-100" data-modal-open="choose-vehicle">Choose a different vehicle</button>
+            </text>} else {<text>
+            <button type="button" class="btn btn-dis b-sm w-100" disabled title="No larger vehicle is needed">Choose a different vehicle</button>
+            </text>}
+          </div>
+        </div>
+        <div class="card-tl summary" style="padding:24px">
+          <div class="sum-cap mb-3">Your booking</div>
+          <div class="sum-row"><span>Service</span><span>@(draft.Service()?.ServiceName)</span></div>
+          <div class="sum-row"><span>Route</span><span>@(Get(draft, "pickup_city")) → @(Get(draft, "dropoff_city"))</span></div>
+          <div class="sum-row"><span>Items</span><span>@(count) · @(NumberFormat(volume, 2)) m³</span></div>
+          <div class="tot-box mt-3"><span class="t-l">Transport</span><span class="t-v">@(Sar(draft.TransportFee())) SAR</span></div>
+        </div>
+      </div>
+    </div>
+    <form method="POST" action="@(route("customer.bookings.create.measurement.save"))">
+      @Html.AntiForgeryToken()
+      <div class="d-flex justify-content-between mt-4"><a class="btn btn-out b-md" href="@(route("customer.bookings.create.items"))"><i class="bi bi-arrow-left"></i> Back</a><button type="submit" class="btn btn-tl b-lg">Continue <i class="bi bi-arrow-right"></i></button></div>
+    </form>
+}
+
+@section Modals {
+
+@{ PushWriter(new System.IO.StringWriter()); }
+  <form method="POST" action="@(route("customer.bookings.create.measurement.correct"))">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="uid" value="@(old("uid"))" data-correct-uid>
+    <div class="m-head d-flex justify-content-between align-items-start">
+      <div class="d-flex gap-3"><div class="sec-ic"><i class="bi bi-rulers"></i></div>
+        <div><h2 class="h-card" id="correct-item-title">Correct the measurement</h2><p class="kv mb-0" data-correct-name>@(FirstWhere(items, "draft_uid", old("uid"))?.ItemName)</p></div></div>
+      <i class="bi bi-x-lg" data-modal-close role="button" tabindex="0" aria-label="Close" style="color:var(--mu);font-size:17px;cursor:pointer"></i>
+    </div>
+    <div class="m-body">
+      <div class="row g-3">
+        @foreach (var (field, __v14) in Pairs((object?)(new Dictionary<string, object?> { ["estimated_length_cm"] = new object[] { "Length", "cm", "l" }, ["estimated_width_cm"] = new object[] { "Width", "cm", "w" }, ["estimated_height_cm"] = new object[] { "Height", "cm", "h" }, ["estimated_weight_kg"] = new object[] { "Weight", "kg", "kg" } }))) {
+dynamic label = At(__v14, 0);
+dynamic unit = At(__v14, 1);
+dynamic key = At(__v14, 2);<text>
+        <div class="col-6">@{ PushWriter(new System.IO.StringWriter()); }
+          <div class="d-flex align-items-center gap-2">
+            <input id="@(field)" name="@(field)" type="number" step="0.01" min="0.01" max="@(unit == "kg" ? 40000 : 9999.99)" required value="@(old(field))" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has(field) })" data-correct-field="@(key)">
+            <span class="pill p-neu">@(unit)</span></div>
+        @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = field, ["label"] = label, ["required"] = true, ["slot"] = __slot3 })</div>
+        </text>}
+      </div>
+      <div class="al a-in mt-3" style="font-size:13.5px"><i class="bi bi-info-circle-fill" style="font-size:16px"></i><div>Length, width and height are for one piece; the volume is recalculated for the whole quantity.</div></div>
+    </div>
+    <div class="m-foot justify-content-end gap-2"><button type="button" class="btn btn-out b-md" data-modal-close>Cancel</button><button type="submit" class="btn btn-tl b-md"><i class="bi bi-check2"></i> Save measurement</button></div>
+  </form>
+@{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_Modal.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["id"] = "correct-item", ["open"] = errors.HasAny(new object[] { "estimated_length_cm", "estimated_width_cm", "estimated_height_cm", "estimated_weight_kg" }), ["label"] = "correct-item-title", ["slot"] = __slot2 }))
+
+
+@if (Count(choices) > 1) {<text>
+@{ PushWriter(new System.IO.StringWriter()); }
+  <form method="POST" action="@(route("customer.bookings.create.measurement.vehicle"))">
+    @Html.AntiForgeryToken()
+    <div class="m-head d-flex justify-content-between align-items-start">
+      <div class="d-flex gap-3"><div class="sec-ic"><i class="bi bi-truck"></i></div>
+        <div><h2 class="h-card" id="choose-vehicle-title">Choose a different vehicle</h2><p class="kv mb-0">Only vehicles at least as large as the recommendation are offered.</p></div></div>
+      <i class="bi bi-x-lg" data-modal-close role="button" tabindex="0" aria-label="Close" style="color:var(--mu);font-size:17px;cursor:pointer"></i>
+    </div>
+    <div class="m-body">
+      @foreach (var (choice, loop) in WithLoop((object?)(choices))) {<text>
+      <label class="@Cls(new Dictionary<string, object?> { ["0"] = "pick d-flex align-items-center gap-3", ["mb-2"] = !loop.Last, ["pick-on"] = choice == type })">
+        <input type="radio" name="vehicle_type" value="@(choice)" class="visually-hidden" @(choice == type ? "checked" : "")>
+        @await Html.PartialAsync((string)TlView(choice == type ? "svg.pick-vehicle-selected" : "svg.pick-vehicle"))
+        <div style="flex:1"><div style="font-weight:700;font-size:15.5px">@(choice)@if (choice == At(recommendation, "type")) {<text> <span class="pill p-ok ms-2" style="font-size:11px;padding:3px 9px">Recommended</span></text>}</div><div class="kv">@(Num(At(At(capacities, choice), "capacity"))) m³ · up to @(NumberFormat(At(At(capacities, choice), "max_weight"))) kg</div></div>
+        <div style="font-weight:700;font-size:15px">@(Sar(app(typeof(TruckLink.Support.Services.PricingService)).TransportFee(draft.Service(), choice))) SAR</div>
+      </label>
+      </text>}
+    </div>
+    <div class="m-foot justify-content-end gap-2"><button type="button" class="btn btn-out b-md" data-modal-close>Cancel</button><button type="submit" class="btn btn-tl b-md">Use this vehicle</button></div>
+  </form>
+@{ var __slot4 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_Modal.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["id"] = "choose-vehicle", ["label"] = "choose-vehicle-title", ["slot"] = __slot4 }))
+</text>}
+}
+
+@section Scripts {
+<script>
+  (function () {
+    
+    document.querySelectorAll('[data-correct]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var item = JSON.parse(button.dataset.correct);
+        document.querySelector('[data-correct-uid]').value = item.uid;
+        document.querySelector('[data-correct-name]').textContent = item.name;
+        document.querySelectorAll('[data-correct-field]').forEach(function (input) {
+          input.value = item[input.dataset.correctField];
+          input.classList.remove('fld-err');
+        });
+      });
+    });
+    
+    document.querySelectorAll('input[name=vehicle_type]').forEach(function (radio) {
+      radio.addEventListener('change', function () {
+        document.querySelectorAll('input[name=vehicle_type]').forEach(function (r) { r.closest('.pick').classList.toggle('pick-on', r.checked); });
+      });
+    });
+  })();
+</script>
+}

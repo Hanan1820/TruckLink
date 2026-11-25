@@ -1,0 +1,53 @@
+
+@{
+    dynamic editing = ViewData["editing"];
+    dynamic record = ViewData["record"];
+    dynamic who = ViewData["who"];
+}
+
+
+
+@{
+dynamic track = editing;
+}
+            <div class="card-tl p-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-person-vcard"></i></div>
+                <div><h2 class="h-card">Personal details</h2>
+                     <p class="kv mb-0">The email address and phone number also sign this @(who) in</p></div></div>
+              <div class="row g-3">
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <input class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("first_name") })" id="first_name" name="first_name" value="@(old("first_name", record.FirstName))" required minlength="2" maxlength="50" autocomplete="off">
+                @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "first_name", ["label"] = "First name", ["required"] = true, ["track"] = track, ["original"] = record.FirstName, ["icon"] = "bi-person", ["slot"] = __slot1 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <input class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("last_name") })" id="last_name" name="last_name" value="@(old("last_name", record.LastName))" required minlength="2" maxlength="50" autocomplete="off">
+                @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "last_name", ["label"] = "Last name", ["required"] = true, ["track"] = track, ["original"] = record.LastName, ["icon"] = "bi-person", ["slot"] = __slot2 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <div style="position:relative"><i class="bi bi-envelope" style="position:absolute;left:15px;top:14px;color:var(--s)"></i>
+                  <input id="email" name="email" type="email" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("email") })" style="padding-left:43px" value="@(old("email", record.Email))" required maxlength="100" autocomplete="off"></div>
+                @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "email", ["label"] = "Email address", ["required"] = true, ["track"] = track, ["original"] = record.Email, ["format"] = "email", ["icon"] = "bi-envelope", ["slot"] = __slot3 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <div style="position:relative"><span style="position:absolute;left:15px;top:12px;color:var(--s);font-size:14px">+966</span>
+                  <input id="phone" name="phone" type="tel" inputmode="numeric" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("phone") })" style="padding-left:54px" value="@(old("phone", record.Phone ? record.PhoneLocal : ""))" required maxlength="13" pattern="^0?5[0-9]\s?[0-9]{3}\s?[0-9]{4}$" placeholder="5X XXX XXXX" title="Saudi mobile number, e.g. 55 412 8830" autocomplete="off"></div>
+                @{ var __slot4 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "phone", ["label"] = "Phone number", ["required"] = true, ["track"] = track, ["original"] = record.Phone ? record.PhoneLocal : "", ["format"] = "phone", ["icon"] = "bi-telephone", ["slot"] = __slot4 }))
+              </div>
+            </div>
+
+            @if (!(Truthy(editing))) {<text>
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-shield-lock"></i></div>
+                <div><h2 class="h-card">Sign-in</h2>
+                     <p class="kv mb-0">A first password; the @(who) signs in with a one-time code as well</p></div></div>
+              <div class="row g-3">
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <div style="position:relative"><i class="bi bi-eye-slash" data-toggle-password="password" role="button" tabindex="0" aria-label="Show password" style="position:absolute;right:15px;top:14px;color:var(--s);cursor:pointer"></i>
+                  <input id="password" name="password" type="password" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("password") })" required minlength="8" maxlength="20" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,20}$" title="8–20 characters with upper and lower case letters, a number and a symbol" autocomplete="new-password"></div>
+                @{ var __slot5 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "password", ["label"] = "Password", ["required"] = true, ["track"] = false, ["hint"] = "8–20 characters with upper and lower case letters, a number and a symbol", ["slot"] = __slot5 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <input id="password_confirmation" name="password_confirmation" type="password" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("password_confirmation") })" required minlength="8" maxlength="20" autocomplete="new-password">
+                @{ var __slot6 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "password_confirmation", ["label"] = "Confirm password", ["required"] = true, ["track"] = false, ["slot"] = __slot6 }))
+              </div>
+            </div>
+            @section Scripts {
+            @await Html.PartialAsync("~/Views/Auth/Partials/PasswordToggle.cshtml")
+            }
+            </text>}

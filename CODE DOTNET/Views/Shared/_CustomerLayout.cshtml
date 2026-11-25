@@ -1,0 +1,83 @@
+
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+@await Html.PartialAsync("~/Views/Shared/_Head.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["shellCss"] = "tl-customer" }))
+</head>
+<body>
+@{
+dynamic me = User(auth("customer"));
+dynamic unreadNotices = me ? Count(me.Announcements().Unread()) : 0;
+dynamic unreadMessages = me ? app(typeof(TruckLink.Support.Services.Chat)).UnreadFor(me) : 0;
+dynamic links = new object[] { new object[] { "customer/bookings", "bi-clipboard-check", "My Bookings", 0 }, new object[] { "customer/services", "bi-tags", "Services", 0 }, new object[] { "customer/storage", "bi-buildings", "Storage", 0 }, new object[] { "customer/invoices", "bi-receipt", "Invoices", 0 }, new object[] { "customer/messages", "bi-chat-dots", "Messages", unreadMessages } };
+}
+<div class="tl-page">
+  
+  <header class="cnav" data-cnav>
+    <div class="cnav-in">
+      <a class="logo-lockup" href="@(url("customer/bookings"))"><img class="logo-mark" src="@(asset("img/logo-mark-rev.png"))" alt="TruckLink"><img class="logo-word" src="@(asset("img/logo-word-rev.png"))" alt="TruckLink"></a>
+
+      <nav class="cnav-links" aria-label="Main">
+        @foreach (var __v17 in links) {
+dynamic path = At(__v17, 0);
+dynamic icon = At(__v17, 1);
+dynamic label = At(__v17, 2);
+dynamic badge = At(__v17, 3);<text>
+        @{
+dynamic on = IsModel(request(), path + "*") && !IsModel(request(), "customer/bookings/create*");
+}
+        <a class="@Cls(new Dictionary<string, object?> { ["0"] = "cnav-link", ["cnav-on"] = on })" href="@(url(path))" @Html.Raw((Truthy(on) ? " aria-current=\"page\" " : ""))>
+          <i class="bi @(icon)"></i><span>@(label)</span>@if (Truthy(badge)) {<text><span class="cnav-count">@(badge)</span></text>}
+        </a>
+        </text>}
+      </nav>
+
+      <div class="cnav-right">
+        <a class="@Cls(new Dictionary<string, object?> { ["0"] = "cnav-cta", ["cnav-cta-on"] = IsModel(request(), "customer/bookings/create*") })" href="@(route("customer.bookings.create"))"><i class="bi bi-plus-lg"></i><span>New booking</span></a>
+        <a class="cnav-icon" href="@(url("customer/notifications"))" aria-label="Notifications@(unreadNotices ? ", " + unreadNotices + " new" : "")">
+          <i class="bi bi-bell"></i>@if (Truthy(unreadNotices)) {<text><span class="cnav-badge">@(unreadNotices > 9 ? "9+" : unreadNotices)</span></text>}
+        </a>
+        <div class="position-relative">
+          <button type="button" class="cnav-me" data-menu-toggle="cnav-menu" aria-haspopup="true" aria-expanded="false">
+            @await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = me?.FirstName, ["last"] = me?.LastName, ["sm"] = true })
+            <span class="cnav-me-text"><b>@(me?.FirstName) @(me?.LastName)</b><small>@(me?.City)</small></span>
+            <i class="bi bi-chevron-down cnav-chev"></i>
+          </button>
+          <div class="cnav-menu" id="cnav-menu" hidden>
+            <div class="cnav-menu-head"><b>@(me?.FullName)</b><span>@(me?.Email)</span></div>
+            <a href="@(url("customer/profile"))"><i class="bi bi-person"></i> My profile</a>
+            <a href="@(url("customer/notifications"))"><i class="bi bi-bell"></i> Notifications @if (Truthy(unreadNotices)) {<text><span class="cnav-count">@(unreadNotices)</span></text>}</a>
+            <a href="@(url("customer/messages"))"><i class="bi bi-chat-dots"></i> Messages @if (Truthy(unreadMessages)) {<text><span class="cnav-count">@(unreadMessages)</span></text>}</a>
+            <a href="@(url("customer/invoices"))"><i class="bi bi-receipt"></i> Invoices</a>
+            <form method="POST" action="@(route("logout"))">@Html.AntiForgeryToken()<button type="submit"><i class="bi bi-box-arrow-right"></i> Sign out</button></form>
+          </div>
+        </div>
+        <button type="button" class="cnav-icon cnav-burger" data-cnav-toggle aria-label="Open the menu" aria-expanded="false"><i class="bi bi-list"></i></button>
+      </div>
+    </div>
+  </header>
+  <div class="body-pad">
+    @RenderSection("Content", required: false)
+  </div>
+</div>
+@RenderSection("Modals", required: false)
+<script>
+  (function () {
+    var nav = document.querySelector('[data-cnav]');
+    
+    var shade = function () { nav.classList.toggle('cnav-scrolled', window.scrollY > 4); };
+    window.addEventListener('scroll', shade, { passive: true }); shade();
+    
+    var burger = nav.querySelector('[data-cnav-toggle]');
+    burger.addEventListener('click', function () { var open = nav.classList.toggle('cnav-open'); burger.setAttribute('aria-expanded', String(open)); });
+    
+    var toggle = nav.querySelector('[data-menu-toggle]'), menu = document.getElementById(toggle.dataset.menuToggle);
+    function set(open) { menu.hidden = !open; toggle.setAttribute('aria-expanded', String(open)); toggle.classList.toggle('cnav-me-open', open); }
+    toggle.addEventListener('click', function (e) { e.stopPropagation(); set(menu.hidden); });
+    document.addEventListener('click', function (e) { if (!menu.contains(e.target)) set(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') set(false); });
+  })();
+</script>
+@RenderSection("Scripts", required: false)
+</body>
+</html>

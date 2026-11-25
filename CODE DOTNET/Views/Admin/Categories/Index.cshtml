@@ -1,0 +1,41 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic byVehicle = ViewData["byVehicle"];
+    dynamic categories = ViewData["categories"];
+    dynamic highlight = ViewData["highlight"];
+    dynamic total = ViewData["total"];
+}
+
+
+
+@{ ViewData["title"] = "Item Categories"; }
+@{ ViewData["search_placeholder"] = "Search categories by name or description"; }
+@{ ViewData["search_action"] = route("admin.item-categories.index"); }
+
+@section Content {
+        @if (Truthy(session("status"))) {<text>
+        <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div>@(session("status"))</div></div>
+        </text>}
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>Item Categories</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">Item Categories</h1>
+               <p class="h-sub">@(total) @(Plural("category", total)) &#183; each one matched with the vehicle type its items need</p></div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-tl b-md" href="@(route("admin.item-categories.create"))"><i class="bi bi-plus-lg"></i> New Category</a>
+          </div>
+        </div>
+        @await Html.PartialAsync("~/Views/Admin/Crud/Partials/Filters.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["chips"] = new Dictionary<string, object?> { ["param"] = "vehicle", ["all"] = new object[] { "All categories", total }, ["items"] = All(Map(Collect(TruckLink.Models.Vehicle.TYPES),  (Func<dynamic, dynamic>)((t) => new object[] { t, t, (int)(At(byVehicle, t) ?? 0), At(TruckLink.Models.Vehicle.ICONS, t) }))) } }))
+        <div class="card-tl" style="overflow:hidden">
+          <table class="tbl">
+            <thead><tr>
+              <th>Category</th><th>Matched vehicle</th><th>Temp-controlled</th><th>Items</th>
+              <th style="text-align:right">Actions</th>
+            </tr></thead>
+            <tbody>@if (!IsEmpty(categories)) {<text>
+@foreach (var category in categories) {<text><tr class="@Cls(new Dictionary<string, object?> { ["row-new"] = highlight == category.CategoryId })"><td><div class="d-flex align-items-center gap-3"><div class="veh-ic" style="width:38px;height:38px;font-size:17px"><i class="bi bi-grid-3x3-gap"></i></div><div><div style="font-weight:600">@(category.CategoryName)</div><div class="kv">@(category.Code)@if (Truthy(category.Description)) {<text> &#183; @(Limit(category.Description, 60))</text>}</div></div></div></td><td><div class="d-flex align-items-center gap-2"><i class="bi @(At(TruckLink.Models.Vehicle.ICONS, category.RecommendedVehicleType))" style="color:var(--s)"></i>@(category.RecommendedVehicleType)</div></td><td>@if (Truthy(category.RequiresTemperatureControl)) {<text><span class="pill p-info"><i class="bi bi-snow"></i> Yes</span></text>} else {<text><span class="kv">No</span></text>}</td><td class="mono-d">@(category.ItemsCount)</td><td style="text-align:right"><div class="d-flex gap-2 justify-content-end"><a class="ib text-decoration-none" href="@(route("admin.item-categories.show", category))" aria-label="View @(category.CategoryName)"><i class="bi bi-eye"></i></a><a class="ib text-decoration-none" href="@(route("admin.item-categories.edit", category))" aria-label="Edit @(category.CategoryName)"><i class="bi bi-pencil"></i></a><a class="ib ib-dg text-decoration-none" href="@(route("admin.item-categories.show", new Dictionary<string, object?> { ["0"] = category, ["delete"] = 1 }))" aria-label="Delete @(category.CategoryName)"><i class="bi bi-trash3"></i></a></div></td></tr></text>}
+</text>} else {<text><tr><td colspan="5" class="kv">No categories match these filters.</td></tr></text>}</tbody>
+          </table>
+          @await Html.PartialAsync("~/Views/Shared/_Pager.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["paginator"] = categories, ["label"] = Plural("category", Total(categories)) }))
+        </div>
+}

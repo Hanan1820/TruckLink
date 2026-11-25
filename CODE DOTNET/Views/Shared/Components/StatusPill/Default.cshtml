@@ -1,0 +1,3 @@
+
+@model TruckLink.Support.ViewComponents.StatusPillModel
+<span class="pill @Model.Tone @Model.Class" style="@Model.Style">@if (!string.IsNullOrEmpty(Model.Icon)) {<i class="bi @Model.Icon"></i> }@(string.IsNullOrEmpty(Model.Label) ? Model.Value : Model.Label)</span>

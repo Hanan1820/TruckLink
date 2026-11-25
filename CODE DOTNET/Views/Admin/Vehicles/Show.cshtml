@@ -1,0 +1,140 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic month = ViewData["month"];
+    dynamic upcoming = ViewData["upcoming"];
+    dynamic vehicle = ViewData["vehicle"];
+}
+
+
+
+
+@{ ViewData["title"] = vehicle.PlateNumber; }
+@{ ViewData["search_placeholder"] = "Search vehicles by plate, type or status"; }
+@{ ViewData["search_action"] = route("admin.vehicles.index"); }
+
+@{
+dynamic statusColour = At(At(TruckLink.Models.Vehicle.STATUS_ICONS, vehicle.VehicleStatus), 1) ?? "--tx";
+dynamic returned = session("returned", new object[0]);
+}
+
+@section Content {
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a> <i class="bi bi-chevron-right" style="font-size:9px"></i>
+          <a href="@(route("admin.vehicles.index"))" class="text-reset text-decoration-none">Fleet</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>@(vehicle.PlateNumber)</b></div>
+        @if (session("vehicle_saved") == vehicle.VehicleId) {<text>
+        <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill" style="font-size:19px"></i>
+          <div><b>Vehicle saved.</b> Record <span class="mono-d">@(vehicle.Code)</span> @if (Truthy(session("vehicle_created"))) {<text>was created and is now
+            @(vehicle.VehicleStatus == "Available" ? "available for booking assignment" : "registered with status " + vehicle.VehicleStatus).</text>} else {<text> was updated.</text>}
+            @if (Truthy(returned)) {<text>@(Implode(" and ", returned)) @(Count(returned) == 1 ? "was" : "were") returned to the queue for a new vehicle.</text>}</div>
+          <span class="pill p-ok ms-auto">@(session("vehicle_created") ? "Created" : "Updated") just now</span></div>
+        </text>}
+        <div class="d-flex justify-content-between align-items-end mb-4">
+          <div class="d-flex align-items-center gap-3">
+            <div class="veh-ic" style="width:56px;height:56px;font-size:26px"><i class="bi @(vehicle.Icon)"></i></div>
+            <div><h1 class="h-page">@(vehicle.PlateNumber)</h1>
+                 <p class="h-sub">@(vehicle.VehicleType) &#183; <span class="mono-d">@(vehicle.Code)</span> &#183;
+                    registered @(Format(vehicle.CreatedAt, "d M Y"))</p></div>
+          </div>
+          <div class="d-flex gap-2">
+            @await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = vehicle.VehicleStatus, ["icon"] = TruckLink.Models.Vehicle.StatusIcon(vehicle.VehicleStatus, true) })
+            <a class="btn btn-out b-md" href="@(route("admin.vehicles.edit", vehicle))"><i class="bi bi-pencil"></i> Edit</a>
+            <a class="btn btn-out-dg b-md" href="@(route("admin.vehicles.show", new Dictionary<string, object?> { ["0"] = vehicle, ["delete"] = 1 }))" data-modal-open="delete-vehicle"><i class="bi bi-trash3"></i> Delete</a>
+          </div>
+        </div>
+        <div class="row g-4">
+          <div class="col-8">
+            <div class="card-tl p-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-clipboard-data"></i></div>
+                <div><h2 class="h-card">Specification</h2>
+                     <p class="kv mb-0">Stored attributes of the <b>vehicle</b> entity</p></div></div>
+              <div class="row g-3">
+                <div class="col-3"><div class="tile"><div class="k">Plate number</div>
+                     <div class="v" style="font-family:ui-monospace,Menlo,monospace;font-size:16px">@(vehicle.PlateNumber)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Vehicle type</div>
+                     <div class="v" style="font-size:16px">@(vehicle.VehicleType)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Capacity volume</div>
+                     <div class="v">@(NumberFormat(vehicle.CapacityVolumeM3, 2)) <span class="u">m&#179;</span></div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Maximum weight</div>
+                     <div class="v">@(NumberFormat(vehicle.MaxWeightKg)) <span class="u">kg</span></div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Temp-controlled</div>
+                     <div class="v" style="font-size:16px">@(vehicle.IsTemperatureControlled ? "Yes" : "No")</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Status</div>
+                     <div class="v" style="font-size:16px;color:var(@(statusColour))">@(vehicle.VehicleStatus)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Registered by</div>
+                     <div class="v" style="font-size:16px">@(vehicle.Admin?.FullName ?? "-")</div>
+                     <div class="u">@(vehicle.Admin?.Code)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Record id</div>
+                     <div class="v" style="font-family:ui-monospace,Menlo,monospace;font-size:16px">@(vehicle.Code)</div></div></div>
+              </div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-calendar-check"></i></div>
+                <div><h2 class="h-card">Upcoming assignments</h2>
+                     <p class="kv mb-0">Bookings this vehicle is currently committed to</p></div></div>
+              <table class="tbl" style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+                <thead><tr><th>Booking</th><th>Customer</th><th>Route</th><th>Pickup</th>
+                           <th>Volume</th><th>Status</th></tr></thead>
+                <tbody>
+                  @if (!IsEmpty(upcoming)) {<text>
+@foreach (var booking in upcoming) {<text>
+                  <tr><td class="mono-d" style="font-weight:600"><a class="text-reset text-decoration-none" href="@(route("admin.bookings.show", booking))">@(booking.Reference)</a></td>
+                      <td><div class="d-flex align-items-center gap-2">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = booking.Customer.FirstName, ["last"] = booking.Customer.LastName, ["sm"] = true })@(booking.Customer.FullName)</div></td>
+                      <td>@(booking.PickupCity) &#8594; @(booking.DropoffCity)</td><td>@(Format(booking.PickupDatetime, "d M, H:i"))</td>
+                      <td class="mono-d">@(NumberFormat(booking.TotalVolumeM3, 2)) m&#179;</td><td>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = booking.BookingStatus })</td></tr>
+                  </text>}
+</text>} else {<text>
+                  <tr><td colspan="6" class="kv">No upcoming bookings.</td></tr>
+                  </text>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="col-4">
+            <div class="card-tl p-4 summary">
+              <div class="cap mb-3">This month</div>
+              <div class="sum-row"><span>Completed trips</span><span>@(At(month, "trips"))</span></div>
+              <div class="sum-row"><span>Distance covered</span><span>@(NumberFormat(At(month, "km"))) km</span></div>
+              <div class="sum-row"><span>Volume moved</span><span>@(Num(Round(At(month, "volume"), 2))) m&#179;</span></div>
+              <div class="sum-row" style="border-bottom:1px solid var(--line)">
+                <span>Revenue generated</span><span>@(Sar(At(month, "revenue"))) SAR</span></div>
+              <div class="mt-3"><div class="d-flex justify-content-between mb-2">
+                  <span class="kv"><b>Capacity utilisation</b></span>
+                  <span class="kv"><b>@(At(month, "utilisation"))%</b></span></div>
+                <div class="bar-track"><div class="bar-fill" style="width:@(Min(100, At(month, "utilisation")))%;background:var(--p)"></div></div>
+                <div class="hint">Average load per trip against @(NumberFormat(vehicle.CapacityVolumeM3, 2)) m&#179;</div></div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="cap mb-3">Status</div>
+              <div class="d-flex flex-column gap-2">
+                @foreach (var (status, __v12) in Pairs((object?)(TruckLink.Models.Vehicle.STATUS_ICONS))) {
+dynamic icon = At(__v12, 0);
+dynamic colour = At(__v12, 1);<text>
+                @if (status == vehicle.VehicleStatus) {<text>
+                <div class="pick-on d-flex align-items-center gap-2">
+                  <i class="bi @(TruckLink.Models.Vehicle.StatusIcon(status, true))" style="color:var(@(colour));font-size:16px"></i>
+                  <span style="font-weight:600;font-size:14px">@(status)</span>
+                  <span class="kv ms-auto">current</span></div>
+                </text>} else {<text>
+                <div class="pick-dis d-flex align-items-center gap-2">
+                  <i class="bi @(icon)" style="color:var(@(colour));font-size:16px"></i>
+                  <span style="font-size:14px">@(status)</span></div>
+                </text>}
+                </text>}
+              </div>
+            </div>
+
+            @if (Truthy(IsNotEmpty(upcoming))) {<text>
+            <div class="al a-wn mt-4"><i class="bi bi-exclamation-triangle-fill" style="font-size:18px"></i>
+              <div><b>@(Count(upcoming)) upcoming @(Plural("booking", Count(upcoming)))</b><div style="margin-top:6px">Changing the status or deleting this
+                vehicle will require @(Count(upcoming) == 1 ? "that booking" : "those bookings") to be reassigned first.</div></div></div>
+            </text>}
+          </div>
+        </div>
+}
+
+@section Modals {
+@await Html.PartialAsync("~/Views/Admin/Vehicles/_DeleteModal.cshtml")
+}

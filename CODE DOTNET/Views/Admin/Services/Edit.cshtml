@@ -1,0 +1,21 @@
+
+@{ Layout = "~/Views/Admin/Crud/FormPage.cshtml"; }
+@{
+    dynamic open = ViewData["open"];
+    dynamic service = ViewData["service"];
+}
+
+@{
+dynamic page = new Dictionary<string, object?> { ["title"] = "Edit Service · " + service.ServiceName, ["sub"] = "Record <span class=\"mono-d\">" + E(service.Code) + "</span> · " + E(service.ServiceType) + " service", ["crumbs"] = new object[] { new object[] { "Services", route("admin.services.index") }, new object[] { service.ServiceName, route("admin.services.show", service) } }, ["current"] = "Edit", ["action"] = route("admin.services.update", service), ["cancel"] = route("admin.services.show", service), ["save"] = "Save Changes", ["editing"] = true, ["search"] = new object[] { "Search services by name, type or description", route("admin.services.index") }, ["recordName"] = "service", ["messages"] = new Dictionary<string, object?> { ["base_price"] = new Dictionary<string, object?> { ["min"] = "The Base price must be at least 0.", ["max"] = "The Base price must not be greater than 99999.99." } } };
+}
+
+
+@section Cards {
+            @await Html.PartialAsync("~/Views/Admin/Services/_Form.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["editing"] = true }))
+}
+
+@section SideEffect {
+            <div class="al a-wn mt-3" data-side-effect data-field="is_active" data-when-not="1" hidden><i class="bi bi-exclamation-triangle-fill" style="font-size:18px"></i>
+              <div><b>Side effect of this change</b><div style="margin-top:6px">An inactive service is no longer offered in the booking wizard.@if (Truthy(open)) {<text>
+                The @(open) @(Plural("booking", open)) in progress that already include it keep it.</text>}<span data-side-value hidden></span></div></div></div>
+}

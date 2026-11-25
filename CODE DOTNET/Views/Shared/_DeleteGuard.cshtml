@@ -1,0 +1,143 @@
+
+@{
+    dynamic id = ViewData["id"] ?? "delete-record";
+    dynamic title = ViewData["title"];
+    dynamic code = ViewData["code"];
+    dynamic table = ViewData["table"];
+    dynamic uses = ViewData["uses"] ?? new object[0];
+    dynamic deactivate = ViewData["deactivate"] ?? null;
+    dynamic reassign = ViewData["reassign"] ?? null;
+    dynamic confirmLabel = ViewData["confirmLabel"];
+    dynamic confirmValue = ViewData["confirmValue"];
+    dynamic deleteAction = ViewData["deleteAction"];
+    dynamic blocked = ViewData["blocked"] ?? null;
+    dynamic noun = ViewData["noun"] ?? null;
+    dynamic open = ViewData["open"] ?? null;
+    dynamic deleteNote = ViewData["deleteNote"] ?? "Available only once nothing references this record.";
+    dynamic slot = ViewData["slot"]; var attributes = new AttributeBag(ViewData);
+    dynamic summary = ViewData["summary"];
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@{
+open ??= Boolean(request(), "delete") || errors.Has("confirm");
+noun ??= Rtrim(table, "s");
+dynamic inUse = Count(uses) > 0;
+dynamic canDelete = !inUse && !blocked;
+dynamic outFirst = deactivate && inUse;
+}
+@{ PushWriter(new System.IO.StringWriter()); }
+  <div data-delete-guard data-can-delete="@(canDelete ? 1 : 0)">
+          <div class="m-head d-flex align-items-start gap-3">
+            <div class="sec-ic" style="background:var(--dgb);color:var(--dg)">
+              <i class="bi bi-trash3-fill"></i></div>
+            <div style="flex:1">
+              <h2 class="h-card" id="@(id)-title">@(title)</h2>
+              <p class="kv mb-0">This permanently removes record
+                 <span class="mono-d">@(code)</span> from the <b>@(table)</b> table.
+                 This action cannot be undone.</p>
+            </div>
+            <i class="bi bi-x-lg" data-modal-close role="button" tabindex="0" aria-label="Close" style="color:var(--mu);font-size:17px;cursor:pointer"></i>
+          </div>
+          <div class="m-body">
+            <div class="conf d-flex align-items-center gap-3 mb-4">@(summary)</div>
+
+            @if (Truthy(inUse)) {<text>
+            <div class="al a-dg mb-4"><i class="bi bi-exclamation-octagon-fill" style="font-size:19px"></i>
+              <div><b>This @(noun) is still in use.</b>
+                <div style="margin-top:7px">It @Html.Raw(ArrJoin(uses, ", ", " and ")). Deleting it would break those references.</div></div></div>
+            </text>}
+            @if (Truthy(blocked)) {<text>
+            <div class="al a-wn mb-4"><i class="bi bi-exclamation-triangle-fill" style="font-size:19px"></i><div>@(blocked)</div></div>
+            </text>}
+
+            <div class="cap mb-3">Choose how to proceed</div>
+            @if (Truthy(deactivate)) {<text>
+            <label class="@Cls(new Dictionary<string, object?> { ["0"] = "d-flex align-items-start gap-3 mb-3", ["pick-on"] = outFirst, ["pick"] = !outFirst })" style="cursor:pointer" data-proceed>
+              <input class="visually-hidden" type="radio" name="proceed" value="out" @(Truthy(outFirst) ? "checked" : "")>
+              <i class="@Cls(new Dictionary<string, object?> { ["0"] = "bi", ["bi-check-circle-fill"] = outFirst, ["bi-circle"] = !outFirst })" style="color:var(@(outFirst ? "--p" : "--line2"));font-size:19px;margin-top:2px" data-proceed-icon></i>
+              <div style="flex:1">
+                <div style="font-weight:700;font-size:14.5px">@(At(deactivate, "title"))
+                  <span class="pill p-ok ms-2" style="font-size:11px;padding:3px 9px">Recommended</span></div>
+                <div class="kv">@(At(deactivate, "text"))</div>
+              </div>
+            </label>
+            </text>}
+            @if (Truthy(reassign)) {<text>
+            <a class="pick d-flex align-items-start gap-3 mb-3 text-reset text-decoration-none" href="@(At(reassign, "url"))">
+              <i class="bi bi-circle" style="color:var(--line2);font-size:19px;margin-top:2px"></i>
+              <div style="flex:1">
+                <div style="font-weight:700;font-size:14.5px">@(At(reassign, "title"))</div>
+                <div class="kv">@(At(reassign, "text"))</div>
+              </div>
+            </a>
+            </text>}
+            <div class="pick-wn d-flex align-items-start gap-3" style="cursor:pointer" data-proceed>
+              <input class="visually-hidden" type="radio" name="proceed" value="delete" @(!outFirst ? "checked" : "")>
+              <i class="@Cls(new Dictionary<string, object?> { ["0"] = "bi", ["bi-check-circle-fill"] = !outFirst, ["bi-circle"] = outFirst })" style="color:var(--wn);font-size:19px;margin-top:2px" data-proceed-icon></i>
+              <div style="flex:1">
+                <div style="font-weight:700;font-size:14.5px">Delete permanently</div>
+                <div class="kv mb-3">@(deleteNote)</div>
+                @await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "confirm", ["id"] = id + "-confirm", ["label"] = confirmLabel, ["form"] = id + "-form", ["style"] = "max-width:280px", ["placeholder"] = confirmValue, ["autocomplete"] = "off", ["maxlength"] = "120", ["hint"] = "Confirmation is required for a permanent delete.", ["data-confirm-value"] = $"{confirmValue}" })
+              </div>
+            </div>
+          </div>
+          <div class="m-foot d-flex align-items-center">
+            <div class="ms-auto d-flex gap-2">
+              <a class="btn btn-out b-md" href="@(Current(url()))" data-modal-close>Cancel</a>
+              <form method="POST" action="@(deleteAction)" id="@(id)-form" class="d-flex">
+                @Html.AntiForgeryToken() <input type="hidden" name="_method" value="DELETE"> 
+                <button type="submit" class="btn btn-dis b-md" disabled data-delete-button><i class="bi bi-trash3"></i> Delete permanently</button>
+              </form>
+              @if (Truthy(deactivate)) {<text>
+              <form method="POST" action="@(At(deactivate, "action"))" class="d-flex">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="@Cls(new Dictionary<string, object?> { ["0"] = "btn b-md", ["btn-tl"] = IsEmpty(At(deactivate, "done")), ["btn-dis"] = !IsEmpty(At(deactivate, "done")) })" @(!IsEmpty(At(deactivate, "done")) ? "disabled" : "")><i class="bi @(At(deactivate, "icon") ?? "bi-shield-check")"></i> @(At(deactivate, "button"))</button>
+              </form>
+              </text>}
+            </div>
+          </div>
+  </div>
+@{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_Modal.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["id"] = id, ["wide"] = true, ["open"] = open, ["label"] = id + "-title", ["slot"] = __slot1 }))
+
+
+@section Scripts {
+<script>
+  
+  
+  document.querySelectorAll('[data-delete-guard]').forEach(function (guard) {
+    var field = guard.querySelector('[data-confirm-value]'), button = guard.querySelector('[data-delete-button]');
+    var canDelete = guard.dataset.canDelete === '1';
+    function norm(v) { return v.trim().replace(/\s+/g, ' ').toLowerCase(); }
+    function paint() {
+      guard.querySelectorAll('[data-proceed]').forEach(function (card) {
+        var on = card.querySelector('input').checked, icon = card.querySelector('[data-proceed-icon]');
+        if (!card.classList.contains('pick-wn')) { card.classList.toggle('pick-on', on); card.classList.toggle('pick', !on); icon.style.color = on ? 'var(--p)' : 'var(--line2)'; }
+        icon.classList.toggle('bi-check-circle-fill', on);
+        icon.classList.toggle('bi-circle', !on);
+      });
+      var allowed = canDelete && norm(field.value) === norm(field.dataset.confirmValue);
+      button.disabled = !allowed;
+      button.classList.toggle('btn-dis', !allowed);
+      button.classList.toggle('btn-dg', allowed);
+    }
+    guard.addEventListener('change', paint);
+    guard.querySelector('.pick-wn[data-proceed]').addEventListener('click', function () { this.querySelector('input[type=radio]').checked = true; paint(); });
+    field.addEventListener('input', function () { guard.querySelector('[name=proceed][value=delete]').checked = true; paint(); });
+    paint();
+  });
+</script>
+}
+

@@ -1,0 +1,35 @@
+
+@{
+    dynamic phone = ViewData["phone"];
+    dynamic simulatedCode = ViewData["simulatedCode"];
+}
+
+
+@if (Truthy(simulatedCode)) {<text>
+@section Modals {
+@{ PushWriter(new System.IO.StringWriter()); }
+  <div class="m-head d-flex justify-content-between align-items-start">
+    <div class="d-flex gap-3"><div class="sec-ic"><i class="bi bi-chat-dots-fill"></i></div>
+      <div><h2 class="h-card" id="simulated-sms-title">Simulated SMS</h2><p class="kv mb-0">To @(phone) · just now</p></div></div>
+    <i class="bi bi-x-lg" data-modal-close role="button" tabindex="0" aria-label="Close" style="color:var(--mu);font-size:17px;cursor:pointer"></i>
+  </div>
+  <div class="m-body">
+    <p class="kv mb-3">Text messages are not connected yet. Until they are, this window shows the message your phone would receive.</p>
+    <div class="al a-in" style="font-size:13px;padding:13px 15px"><i class="bi bi-phone-fill" style="font-size:16px"></i><div>Your TruckLink code is <b>@(simulatedCode)</b>. It expires in 5 minutes.</div></div>
+  </div>
+  <div class="m-foot justify-content-end gap-2"><button type="button" class="btn btn-out b-md" data-modal-close>Close</button><button type="button" class="btn btn-tl b-md" data-otp-fill="@(simulatedCode)" data-modal-close autofocus><i class="bi bi-check2"></i> Use this code</button></div>
+@{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_Modal.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["id"] = "simulated-sms", ["open"] = true, ["label"] = "simulated-sms-title", ["slot"] = __slot1 }))
+}
+@section Scripts {
+<script>
+  
+  document.querySelectorAll('[data-otp-fill]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var input = document.getElementById('code');
+      input.value = button.dataset.otpFill;
+      input.focus();
+    });
+  });
+</script>
+}
+</text>}

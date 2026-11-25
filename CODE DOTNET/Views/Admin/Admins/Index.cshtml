@@ -1,0 +1,44 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic admins = ViewData["admins"];
+    dynamic byRole = ViewData["byRole"];
+    dynamic canManage = ViewData["canManage"];
+    dynamic highlight = ViewData["highlight"];
+    dynamic total = ViewData["total"];
+}
+
+
+
+@{ ViewData["title"] = "Admin accounts"; }
+@{ ViewData["search_placeholder"] = "Search admins by name or email"; }
+@{ ViewData["search_action"] = route("admin.admins.index"); }
+
+@section Content {
+        @if (Truthy(session("status"))) {<text>
+        <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div>@(session("status"))</div></div>
+        </text>}
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>Admin accounts</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">Admin Accounts</h1>
+               <p class="h-sub">@(total) admin @(Plural("account", total)) &#183; @(canManage ? "you can add, edit and remove accounts" : "only a Super Admin can add, edit or remove accounts")</p></div>
+          @if (Truthy(canManage)) {<text>
+          <div class="d-flex gap-2">
+            <a class="btn btn-tl b-md" href="@(route("admin.admins.create"))"><i class="bi bi-plus-lg"></i> New Admin</a>
+          </div>
+          </text>}
+        </div>
+        @await Html.PartialAsync("~/Views/Admin/Crud/Partials/Filters.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["chips"] = new Dictionary<string, object?> { ["param"] = "role", ["all"] = new object[] { "All admins", total }, ["items"] = All(Map(Collect(TruckLink.Models.Admin.ROLES),  (Func<dynamic, dynamic>)((r) => new object[] { r, Plural(r), (int)(At(byRole, r) ?? 0), At(At(TruckLink.Controllers.Admin.AdminAccountController.ROLE_ICONS, r), 0) }))) } }))
+        <div class="card-tl" style="overflow:hidden">
+          <table class="tbl">
+            <thead><tr>
+              <th>Admin</th><th>Phone</th><th>Role</th><th>Records registered</th><th>Since</th>
+              <th style="text-align:right">Actions</th>
+            </tr></thead>
+            <tbody>@if (!IsEmpty(admins)) {<text>
+@foreach (var account in admins) {<text><tr class="@Cls(new Dictionary<string, object?> { ["row-new"] = highlight == account.AdminId })"><td><div class="d-flex align-items-center gap-3">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = account.FirstName, ["last"] = account.LastName, ["sm"] = true })<div><div style="font-weight:600">@(account.FullName)@if (Truthy(IsModel(account, User(auth("admin"))))) {<text> <span class="kv">(you)</span></text>}</div><div class="kv">@(account.Code) &#183; @(account.Email)</div></div></div></td><td class="mono-d">@(account.PhoneDisplay)</td><td><span class="pill p-neu"><i class="bi @(At(At(TruckLink.Controllers.Admin.AdminAccountController.ROLE_ICONS, account.AdminRole), 0))"></i> @(account.AdminRole)</span></td><td class="kv">@(account.VehiclesCount) vehicles &#183; @(account.StaffCount) staff &#183; @(account.ServicesCount + account.ItemCategoriesCount) catalogue</td><td class="kv">@(Format(account.CreatedAt, "d M Y"))</td><td style="text-align:right"><div class="d-flex gap-2 justify-content-end"><a class="ib text-decoration-none" href="@(route("admin.admins.show", account))" aria-label="View @(account.FullName)"><i class="bi bi-eye"></i></a>@if (Truthy(canManage)) {<text><a class="ib text-decoration-none" href="@(route("admin.admins.edit", account))" aria-label="Edit @(account.FullName)"><i class="bi bi-pencil"></i></a><a class="ib ib-dg text-decoration-none" href="@(route("admin.admins.show", new Dictionary<string, object?> { ["0"] = account, ["delete"] = 1 }))" aria-label="Delete @(account.FullName)"><i class="bi bi-trash3"></i></a></text>}</div></td></tr></text>}
+</text>} else {<text><tr><td colspan="6" class="kv">No admins match these filters.</td></tr></text>}</tbody>
+          </table>
+          @await Html.PartialAsync("~/Views/Shared/_Pager.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["paginator"] = admins, ["label"] = Plural("admin", Total(admins)) }))
+        </div>
+}

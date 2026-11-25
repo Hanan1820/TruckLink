@@ -1,0 +1,125 @@
+
+@{ Layout = "~/Views/Admin/Crud/ShowPage.cshtml"; }
+@{
+    dynamic member = ViewData["member"];
+    dynamic record = ViewData["record"];
+    dynamic upcoming = ViewData["upcoming"];
+    dynamic uses = ViewData["uses"];
+}
+
+@{
+dynamic page = new Dictionary<string, object?> { ["title"] = member.FullName, ["crumbs"] = new object[] { new object[] { "Staff", route("admin.staff.index") } }, ["search"] = new object[] { "Search staff by name, email, phone or licence", route("admin.staff.index") }, ["edit"] = route("admin.staff.edit", member), ["deletable"] = true, ["savedKey"] = "staff:" + member.StaffId, ["noun"] = "Staff member", ["code"] = member.Code };
+dynamic statusIcons = TruckLink.Models.Staff.STATUS_ICONS;
+dynamic isDriver = member.JobTitle == "Driver";
+}
+
+
+@section HeadIcon {
+            <div class="veh-ic" style="width:56px;height:56px;font-size:26px"><i class="bi @(At(TruckLink.Models.Staff.TITLE_ICONS, member.JobTitle))"></i></div>
+}
+@section HeadSub {@(member.JobTitle)@if (Truthy(member.Specialty)) {<text> &#183; @(member.Specialty)</text>} &#183; <span class="mono-d">@(member.Code)</span> &#183; hired @(Format(member.HireDate, "d M Y"))}
+@section HeadPill {
+            @await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = member.StaffStatus, ["icon"] = At(At(statusIcons, member.StaffStatus), 0) + (member.StaffStatus == "Active" ? "-fill" : "") })
+}
+
+@section Main {
+            <div class="card-tl p-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-clipboard-data"></i></div>
+                <div><h2 class="h-card">Profile</h2>
+                     <p class="kv mb-0">Stored attributes of the <b>staff</b> entity</p></div></div>
+              <div class="row g-3">
+                <div class="col-3"><div class="tile"><div class="k">Job title</div><div class="v" style="font-size:16px">@(member.JobTitle)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">@(isDriver ? "Licence number" : "Specialty")</div>
+                     <div class="v" style="font-size:16px@(isDriver ? ";font-family:ui-monospace,Menlo,monospace" : "")">@(isDriver ? member.LicenseNumber : (member.Specialty ? Ucfirst(member.Specialty) : "-"))</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Shift</div><div class="v" style="font-size:16px">@(member.ShiftStartLabel ? member.ShiftStartLabel + "–" + member.ShiftEndLabel : "-")</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Hire date</div><div class="v" style="font-size:16px">@(Format(member.HireDate, "d M Y"))</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Phone</div><div class="v" style="font-size:16px">@(member.PhoneDisplay)</div></div></div>
+                <div class="col-6"><div class="tile"><div class="k">Email</div><div class="v" style="font-size:16px">@(member.Email)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Added by</div><div class="v" style="font-size:16px">@(member.Admin?.FullName ?? "-")</div><div class="u">@(member.Admin?.Code)</div></div></div>
+              </div>
+            </div>
+
+            @if (Truthy(isDriver)) {<text>
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-calendar-check"></i></div>
+                <div><h2 class="h-card">Current &amp; upcoming jobs</h2>
+                     <p class="kv mb-0">Bookings this driver is assigned to</p></div></div>
+              <table class="tbl" style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+                <thead><tr><th>Booking</th><th>Customer</th><th>Route</th><th>Pickup</th><th>Status</th></tr></thead>
+                <tbody>
+                  @if (!IsEmpty(upcoming)) {<text>
+@foreach (var booking in upcoming) {<text>
+                  <tr><td class="mono-d" style="font-weight:600"><a class="text-reset text-decoration-none" href="@(route("admin.bookings.show", booking))">@(booking.Reference)</a></td>
+                      <td><div class="d-flex align-items-center gap-2">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = booking.Customer.FirstName, ["last"] = booking.Customer.LastName, ["sm"] = true })@(booking.Customer.FullName)</div></td>
+                      <td>@(booking.PickupCity) &#8594; @(booking.DropoffCity)</td><td>@(Format(booking.PickupDatetime, "d M, H:i"))</td>
+                      <td>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = booking.BookingStatus })</td></tr>
+                  </text>}
+</text>} else {<text>
+                  <tr><td colspan="5" class="kv">No current or upcoming jobs.</td></tr>
+                  </text>}
+                </tbody>
+              </table>
+            </div>
+            </text>} else if (Truthy(IsNotEmpty(member.Warehouses))) {<text>
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-buildings"></i></div>
+                <div><h2 class="h-card">Warehouse</h2>
+                     <p class="kv mb-0">The warehouse this keeper is responsible for</p></div></div>
+              @foreach (var warehouse in member.Warehouses) {<text>
+              <div class="d-flex justify-content-between mb-2"><span style="font-weight:600">@(warehouse.WarehouseName)</span><span class="kv"><b>@(warehouse.OccupancyPercent)%</b> occupied</span></div>
+              <div class="bar-track"><div class="bar-fill" style="width:@(warehouse.OccupancyPercent)%;background:var(--p)"></div></div>
+              <div class="hint mb-3">@(warehouse.City) &#183; @(Num(warehouse.UsedCapacityM3)) of @(Num(warehouse.TotalCapacityM3)) m&#179; &#183; @(warehouse.OpeningHours)</div>
+              </text>}
+            </div>
+            </text>}
+}
+
+@section Side {
+            <div class="card-tl p-4 summary">
+              <div class="cap mb-3">Track record</div>
+              <div class="sum-row"><span>Completed jobs</span><span>@(At(record, "completed"))</span></div>
+              <div class="sum-row"><span>Distance driven</span><span>@(NumberFormat(At(record, "km"))) km</span></div>
+              <div class="sum-row"><span>Customer reviews</span><span>@(At(record, "reviews"))</span></div>
+              <div class="sum-row"><span>Average rating</span><span>@(At(record, "rating") ? NumberFormat(At(record, "rating"), 1) + " / 5" : "-")</span></div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="cap mb-3">Status</div>
+              <div class="d-flex flex-column gap-2">
+                @foreach (var (status, __v11) in Pairs((object?)(statusIcons))) {
+dynamic icon = At(__v11, 0);
+dynamic colour = At(__v11, 1);<text>
+                @if (status == member.StaffStatus) {<text>
+                <div class="pick-on d-flex align-items-center gap-2">
+                  <i class="bi @(icon)-fill" style="color:var(@(colour));font-size:16px"></i>
+                  <span style="font-weight:600;font-size:14px">@(status)</span>
+                  <span class="kv ms-auto">current</span></div>
+                </text>} else {<text>
+                <div class="pick-dis d-flex align-items-center gap-2">
+                  <i class="bi @(icon)" style="color:var(@(colour));font-size:16px"></i>
+                  <span style="font-size:14px">@(status)</span></div>
+                </text>}
+                </text>}
+              </div>
+            </div>
+
+            @if (isDriver && IsNotEmpty(Where(upcoming, "booking_status", "Accepted"))) {<text>
+            @{
+dynamic n = Count(Where(upcoming, "booking_status", "Accepted"));
+}
+            <div class="al a-wn mt-4"><i class="bi bi-exclamation-triangle-fill" style="font-size:18px"></i>
+              <div><b>@(n) upcoming @(Plural("booking", n))</b><div style="margin-top:6px">Changing the status or deleting this
+                staff member will require @(n == 1 ? "that booking" : "those bookings") to be reassigned first.</div></div></div>
+            </text>}
+}
+
+@section Modals {
+@{ PushWriter(new System.IO.StringWriter()); }
+    @await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = member.FirstName, ["last"] = member.LastName })
+    <div style="flex:1">
+      <div style="font-weight:700;font-size:15px">@(member.FullName)</div>
+      <div class="kv">@(member.JobTitle) &#183; @(member.PhoneDisplay) &#183; hired @(Format(member.HireDate, "d M Y"))</div>
+    </div>
+    @await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = member.StaffStatus })
+  @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_DeleteGuard.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["title"] = "Delete staff member " + member.FullName + "?", ["code"] = member.Code, ["table"] = "staff", ["noun"] = "staff member", ["uses"] = uses, ["deactivate"] = new Dictionary<string, object?> { ["title"] = "Set status to Inactive", ["text"] = "The record is kept for reporting and history, but " + member.FirstName + " can no longer sign in or be assigned to bookings.", ["action"] = route("admin.staff.deactivate", member), ["button"] = "Set Inactive", ["done"] = member.StaffStatus == "Inactive" }, ["confirm-label"] = "Type the full name to confirm", ["confirm-value"] = member.FullName, ["delete-action"] = route("admin.staff.destroy", member), ["delete-note"] = "Available only once no booking, warehouse, message or announcement references this staff member.", ["summary"] = __slot1 }))
+}

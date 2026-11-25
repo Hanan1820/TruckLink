@@ -1,0 +1,99 @@
+
+@{ Layout = "~/Views/Shared/_CustomerLayout.cshtml"; }
+@{
+    dynamic customer = ViewData["customer"];
+}
+
+
+
+
+@{ ViewData["title"] = "My Profile"; }
+
+@{
+dynamic pe = errors.GetBag("profile");
+dynamic ce = errors.GetBag("card");
+dynamic we = errors.GetBag("password");
+dynamic cities = config("trucklink.cities");
+dynamic city = old("city", customer.City);
+}
+
+@section Content {
+    @if (Truthy(session("status"))) {<text>
+    <div class="al a-ok mb-3"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div>@(session("status"))</div></div>
+    </text>}
+    <div class="page-head"><div><h1 class="h-page">My Profile</h1><p class="h-sub">@(customer.Code) · customer since @(Format(customer.CreatedAt, "d M Y"))</p></div>
+      <form method="POST" action="@(route("logout"))">@Html.AntiForgeryToken()<button type="submit" class="btn btn-out-dg b-md"><i class="bi bi-box-arrow-right"></i> Sign out</button></form></div>
+    <div class="row g-3">
+      <div class="col-8">
+        <form method="POST" action="@(route("customer.profile.update"))" class="card-tl mb-3" style="padding:26px">
+          @Html.AntiForgeryToken() <input type="hidden" name="_method" value="PUT"> 
+          <div class="sec-head"><div class="sec-ic"><i class="bi bi-person-vcard"></i></div><div><h2 class="h-card">Personal details</h2><p class="kv mb-0">Your email address and phone number sign you in</p></div></div>
+          <div class="row g-3 mb-3">
+            <div class="col-6">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "first_name", ["label"] = "First name", ["bag"] = "profile", ["required"] = true, ["minlength"] = "2", ["maxlength"] = "50", ["autocomplete"] = "given-name", ["value"] = customer.FirstName })</div>
+            <div class="col-6">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "last_name", ["label"] = "Last name", ["bag"] = "profile", ["required"] = true, ["minlength"] = "2", ["maxlength"] = "50", ["autocomplete"] = "family-name", ["value"] = customer.LastName })</div>
+          </div>
+          <div class="mb-3">@{ PushWriter(new System.IO.StringWriter()); }
+            <div style="position:relative"><i class="bi bi-envelope" style="position:absolute;left:15px;top:14px;color:var(--s)"></i>
+            <input id="email" name="email" type="email" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = pe.Has("email") })" style="padding-left:43px" value="@(old("email", customer.Email))" required maxlength="100" autocomplete="email"></div>
+          @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "email", ["label"] = "Email address", ["bag"] = "profile", ["required"] = true, ["slot"] = __slot1 })</div>
+          <div class="row g-3 mb-3">
+            <div class="col-7">@{ PushWriter(new System.IO.StringWriter()); }
+              <div style="position:relative"><span style="position:absolute;left:15px;top:12px;color:var(--s);font-size:14px">+966</span>
+              <input id="phone" name="phone" type="tel" inputmode="numeric" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = pe.Has("phone") })" style="padding-left:54px" value="@(old("phone", customer.PhoneLocal))" required maxlength="13" pattern="^0?5[0-9]\s?[0-9]{3}\s?[0-9]{4}$" placeholder="5X XXX XXXX" title="Saudi mobile number, e.g. 55 412 8830" autocomplete="tel-national"></div>
+            @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "phone", ["label"] = "Phone number", ["bag"] = "profile", ["required"] = true, ["slot"] = __slot2 })</div>
+            <div class="col-5">@{ PushWriter(new System.IO.StringWriter()); }
+              <div style="position:relative"><i class="bi bi-chevron-down" style="position:absolute;right:15px;top:15px;color:var(--s);font-size:12px;pointer-events:none"></i>
+              <select id="city" name="city" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = pe.Has("city") })" style="appearance:none" required>
+                @foreach (var option in cities) {<text><option @(city == option ? "selected" : "")>@(option)</option></text>}
+              </select></div>
+            @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "city", ["label"] = "City", ["bag"] = "profile", ["required"] = true, ["slot"] = __slot3 })</div>
+          </div>
+          <div class="mb-4">@{ PushWriter(new System.IO.StringWriter()); }Address <span style="color:var(--mu);font-weight:500">- optional, used as your pickup address</span>@{ var __slot4 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "address", ["bag"] = "profile", ["maxlength"] = "200", ["placeholder"] = "Street, district, building number", ["autocomplete"] = "street-address", ["value"] = customer.Address, ["label"] = __slot4 })</div>
+          <div class="d-flex justify-content-end"><button type="submit" class="btn btn-tl b-md"><i class="bi bi-check-lg"></i> Save details</button></div>
+        </form>
+
+        <form method="POST" action="@(route("customer.profile.password"))" class="card-tl" style="padding:26px">
+          @Html.AntiForgeryToken() <input type="hidden" name="_method" value="PUT"> 
+          <div class="sec-head"><div class="sec-ic"><i class="bi bi-shield-lock"></i></div><div><h2 class="h-card">Password</h2><p class="kv mb-0">8–20 characters with upper and lower case letters, a number and a symbol</p></div></div>
+          <div class="row g-3 mb-4">
+            <div class="col-4">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "current_password", ["label"] = "Current password", ["bag"] = "password", ["type"] = "password", ["required"] = true, ["autocomplete"] = "current-password" })</div>
+            <div class="col-4">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "password", ["label"] = "New password", ["bag"] = "password", ["type"] = "password", ["required"] = true, ["minlength"] = "8", ["maxlength"] = "20", ["pattern"] = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,20}$", ["title"] = "8–20 characters with upper and lower case letters, a number and a symbol", ["autocomplete"] = "new-password" })</div>
+            <div class="col-4">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "password_confirmation", ["label"] = "Confirm new password", ["bag"] = "password", ["type"] = "password", ["required"] = true, ["minlength"] = "8", ["maxlength"] = "20", ["autocomplete"] = "new-password" })</div>
+          </div>
+          <div class="d-flex justify-content-end"><button type="submit" class="btn btn-out b-md"><i class="bi bi-key"></i> Change password</button></div>
+        </form>
+      </div>
+
+      <div class="col-4">
+        <div class="card-tl mb-3" style="padding:24px">
+          <div class="sum-cap mb-3">Saved card</div>
+          @if (customer.HasSavedCard() && !Any(ce)) {<text>
+          <div class="pick-on d-flex align-items-center gap-3 mb-3">
+            <div class="ic-box ic-on"><i class="bi @(customer.CardType == "Mada" ? "bi-credit-card-2-front" : "bi-credit-card")"></i></div>
+            <div><div style="font-weight:700" class="mono-d">@(customer.CardNumber)</div><div class="kv">@(customer.CardType) · @(customer.CardHolderName) · expires @(customer.ExpiryDate)</div></div>
+          </div>
+          <form method="POST" action="@(route("customer.profile.card.remove"))">@Html.AntiForgeryToken() <input type="hidden" name="_method" value="DELETE"> <button type="submit" class="btn btn-out-dg b-md w-100"><i class="bi bi-trash3"></i> Remove card</button></form>
+          </text>} else {<text>
+          <form method="POST" action="@(route("customer.profile.card"))">
+            @Html.AntiForgeryToken() <input type="hidden" name="_method" value="PUT"> 
+            <div class="mb-3">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "card_holder_name", ["label"] = "Name on card", ["bag"] = "card", ["required"] = true, ["maxlength"] = "100", ["autocomplete"] = "cc-name", ["value"] = customer.FullName })</div>
+            <div class="mb-3">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "card_number", ["label"] = "Card number", ["bag"] = "card", ["required"] = true, ["inputmode"] = "numeric", ["maxlength"] = "19", ["pattern"] = "^[0-9 ]{16,19}$", ["placeholder"] = "1234 5678 9012 3456", ["autocomplete"] = "cc-number", ["value"] = "" })</div>
+            <div class="row g-3 mb-3">
+              <div class="col-6">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "expiry_date", ["label"] = "Expiry", ["bag"] = "card", ["required"] = true, ["maxlength"] = "5", ["placeholder"] = "MM/YY", ["pattern"] = "^(0[1-9]|1[0-2])/[0-9]{2}$", ["autocomplete"] = "cc-exp" })</div>
+              <div class="col-6">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "cvv", ["label"] = "CVV", ["bag"] = "card", ["type"] = "password", ["required"] = true, ["inputmode"] = "numeric", ["maxlength"] = "4", ["pattern"] = "^[0-9]{3,4}$", ["autocomplete"] = "cc-csc" })</div>
+            </div>
+            <button type="submit" class="btn btn-tl b-md w-100"><i class="bi bi-credit-card"></i> Save card</button>
+            <div class="hint">Only the last four digits and the expiry are kept. The CVV is checked, never stored.</div>
+          </form>
+          </text>}
+        </div>
+        <div class="card-tl" style="padding:24px">
+          <div class="sum-cap mb-3">Account</div>
+          <div class="sum-row"><span>Customer id</span><span class="mono-d">@(customer.Code)</span></div>
+          <div class="sum-row"><span>Member since</span><span>@(Format(customer.CreatedAt, "d M Y"))</span></div>
+          <div class="sum-row"><span>Bookings</span><span>@(Count(customer.Bookings()))</span></div>
+          <div class="sum-row"><span>Status</span><span>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = customer.AccountStatus })</span></div>
+        </div>
+      </div>
+    </div>
+}

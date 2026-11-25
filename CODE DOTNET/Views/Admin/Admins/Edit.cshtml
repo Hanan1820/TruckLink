@@ -1,0 +1,21 @@
+
+@{ Layout = "~/Views/Admin/Crud/FormPage.cshtml"; }
+@{
+    dynamic account = ViewData["account"];
+}
+
+@{
+dynamic page = new Dictionary<string, object?> { ["title"] = "Edit Admin · " + account.FullName, ["sub"] = "Record <span class=\"mono-d\">" + E(account.Code) + "</span> · admin since " + Format(account.CreatedAt, "d M Y"), ["crumbs"] = new object[] { new object[] { "Admin accounts", route("admin.admins.index") }, new object[] { account.FullName, route("admin.admins.show", account) } }, ["current"] = "Edit", ["action"] = route("admin.admins.update", account), ["cancel"] = route("admin.admins.show", account), ["save"] = "Save Changes", ["editing"] = true, ["search"] = new object[] { "Search admins by name or email", route("admin.admins.index") }, ["recordName"] = "admin account" };
+}
+
+
+@section Cards {
+            @await Html.PartialAsync("~/Views/Admin/Admins/_Form.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["editing"] = true }))
+}
+
+@section SideEffect {
+            @if (Truthy(IsModel(account, User(auth("admin"))))) {<text>
+            <div class="al a-wn mt-3" data-side-effect data-field="admin_role" data-when-not="Super Admin" hidden><i class="bi bi-exclamation-triangle-fill" style="font-size:18px"></i>
+              <div><b>Side effect of this change</b><div style="margin-top:6px">As <b data-side-value></b> you will no longer be able to manage admin accounts, including your own.</div></div></div>
+            </text>}
+}

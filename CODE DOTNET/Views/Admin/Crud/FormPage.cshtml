@@ -1,0 +1,86 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic page = ViewData["page"];
+}
+
+
+
+
+
+
+
+
+
+
+
+@{ ViewData["title"] = At(page, "title"); }
+@{ ViewData["search_placeholder"] = At(At(page, "search"), 0); }
+@{ ViewData["search_action"] = At(At(page, "search"), 1); }
+
+@section Content {
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a>
+          @foreach (var __v5 in At(page, "crumbs")) {
+dynamic label = At(__v5, 0);
+dynamic url = At(__v5, 1);<text> <i class="bi bi-chevron-right" style="font-size:9px"></i>
+          <a href="@(url)" class="text-reset text-decoration-none">@(label)</a></text>} <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>@(At(page, "current"))</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">@(At(page, "title"))</h1>
+               <p class="h-sub">@Html.Raw(At(page, "sub"))</p></div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-out b-md" href="@(At(page, "cancel"))">Cancel</a>
+            <button type="submit" form="record-form" class="btn btn-tl b-md"><i class="bi bi-check-lg"></i> @(At(page, "save"))</button>
+          </div>
+        </div>
+        @if (Truthy(At(page, "editing"))) {<text>
+        <div class="al a-wn mb-4" data-unsaved hidden><i class="bi bi-pencil-fill" style="font-size:18px"></i>
+          <div><b data-unsaved-text></b> Modified fields are marked with
+            <span class="dot-chg"></span> . Nothing is written to the record until you save.</div></div>
+        </text>}
+        <form id="record-form" method="POST" action="@(At(page, "action"))" class="row g-4">
+          @Html.AntiForgeryToken() @if (Truthy(At(page, "editing"))) {<text> <input type="hidden" name="_method" value="PUT">  </text>}
+          <div class="col-8">
+            @RenderSection("Cards", required: false)
+          </div>
+
+          <div class="col-4">
+            @if (Truthy(At(page, "editing"))) {<text>
+            <div class="card-tl p-4 summary" data-changes>
+              <div class="cap mb-3">Change summary</div>
+              <div class="kv" data-no-changes>No changes yet.</div>
+              <template data-diff-row><div class="diff"><i data-diff-icon></i>
+                <div style="flex:1"><div class="kv"><b data-diff-label></b></div>
+                  <div><span class="old"></span>
+                       <i class="bi bi-arrow-right mx-1" style="font-size:10px"></i>
+                       <span class="new"></span></div>
+                  <div class="kv" style="color:var(--dg)" data-diff-note hidden></div></div></div></template>
+              <button type="submit" class="btn btn-dis b-md w-100 mt-3" disabled data-save data-label="@(At(page, "save"))">
+                <i class="bi bi-check-lg"></i> <span data-save-text>@(At(page, "save"))</span></button>
+            </div>
+
+            <div class="al a-dg mt-4" data-problems hidden><i class="bi bi-exclamation-octagon-fill" style="font-size:18px"></i>
+              <div><b data-problems-title></b><div style="margin-top:6px" data-problems-text></div></div></div>
+
+            @RenderSection("SideEffect", required: false)
+            </text>} else {<text>
+            @RenderSection("Preview", required: false)
+
+
+            <div class="card-tl p-4 mt-4">
+              <div class="cap mb-3">Where this record is used</div>
+              @foreach (var (n, __v6, loop) in PairsWithLoop((object?)(At(page, "uses")))) {
+dynamic useTitle = At(__v6, 0);
+dynamic useText = At(__v6, 1);<text>
+              <div class="tl-item" @Html.Raw((Truthy(loop.Last) ? " style=\"padding-bottom:0\" " : ""))><div class="@Cls(new Dictionary<string, object?> { ["0"] = "tl-dot", ["tl-dot-mu"] = loop.Last && loop.Count > 1 })"></div><div>
+                <div style="font-weight:600;font-size:14px">@(useTitle)</div>
+                <div class="kv">@(useText)</div></div></div>
+              </text>}
+            </div>
+            </text>}
+          </div>
+        </form>
+}
+
+@if (Truthy(At(page, "editing"))) {<text>
+@await Html.PartialAsync("~/Views/Admin/Partials/ChangeTracking.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["form"] = "record-form", ["messages"] = At(page, "messages") ?? new object[0], ["recordName"] = At(page, "recordName") ?? "record" }))
+</text>}

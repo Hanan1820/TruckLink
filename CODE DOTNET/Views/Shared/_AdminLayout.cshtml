@@ -1,0 +1,81 @@
+
+@{
+    dynamic noticeCount = ViewData["noticeCount"];
+    dynamic pendingCount = ViewData["pendingCount"];
+    dynamic shellArea = ViewData["shellArea"];
+    dynamic shellRole = ViewData["shellRole"];
+    dynamic shellUser = ViewData["shellUser"];
+}
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+@await Html.PartialAsync("~/Views/Shared/_Head.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["shellCss"] = "tl-admin" }))
+</head>
+<body>
+<div class="tl-page">
+  
+  <div class="shell min-vh-100">
+    <aside class="side">
+      <div class="side-logo"><a class="logo-lockup" href="@(url(shellArea == "staff" ? "staff/jobs" : "admin/bookings"))"><img class="logo-mark" src="@(asset("img/logo-mark-rev.png"))" alt="TruckLink"><img class="logo-word" src="@(asset("img/logo-word-rev.png"))" alt="TruckLink"></a></div>
+      @await Html.PartialAsync((string)TlView("layouts.partials.side-" + shellArea))
+      <div class="side-user">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = shellUser?.FirstName, ["last"] = shellUser?.LastName })<div><div style="color:#fff;font-size:13.5px;font-weight:600">@(shellUser?.FirstName) @(shellUser?.LastName)</div><div style="color:#93A6BA;font-size:11.5px">@(shellRole)</div></div></div>
+    </aside>
+    <div class="rs-backdrop" data-side-toggle></div>
+    <div class="main">
+      <div class="topbar">
+        
+        <button type="button" class="btn btn-out b-ico rs-toggle" data-side-toggle aria-label="Open the menu" aria-expanded="false"><i class="bi bi-list"></i></button>
+        <form method="GET" action="@(ViewData["search_action"] ?? (url(shellArea == "staff" ? "staff/jobs" : "admin/bookings")))" style="position:relative;width:380px"><i class="bi bi-search" style="position:absolute;left:14px;top:11px;color:var(--s)"></i><input class="fld" name="q" value="@(request("q"))" style="padding-left:40px;padding-top:9px;padding-bottom:9px" placeholder="@(ViewData["search_placeholder"] ?? (shellArea == "staff" ? "Search my jobs by reference, customer or city" : "Search bookings, customers, vehicles"))"></form>
+        <div class="d-flex align-items-center gap-3">@if (Truthy(noticeCount)) {<text><a class="pill p-pend text-decoration-none" href="@(url("staff/notifications"))"><i class="bi bi-bell-fill"></i> @(noticeCount) new @(Plural("notice", noticeCount))</a></text>} @if (pendingCount != null) {<text><a class="pill p-pend text-decoration-none" href="@(url("admin/bookings?status=Pending"))"><i class="bi bi-bell-fill"></i> @(pendingCount) new @(Plural("request", pendingCount))</a></text>}
+          
+          <div class="position-relative">
+            @await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = shellUser?.FirstName, ["last"] = shellUser?.LastName, ["button"] = true, ["data-menu-toggle"] = "shell-menu", ["aria-haspopup"] = "true", ["aria-expanded"] = "false", ["aria-label"] = "Account menu" })
+            <div class="menu" id="shell-menu" hidden style="position:absolute;right:0;top:calc(100% + 8px);border-top:1.5px solid var(--p);border-radius:9px;white-space:nowrap;z-index:20">
+              @if (shellArea == "admin") {<text>
+              <a class="menu-i text-reset text-decoration-none" href="@(url("admin/customers"))"><span><i class="bi bi-person-lines-fill me-2"></i>Customers</span></a>
+              <a class="menu-i text-reset text-decoration-none" href="@(url("admin/admins"))"><span><i class="bi bi-person-badge me-2"></i>Admin accounts</span></a>
+              </text>} else {<text>
+              <a class="menu-i text-reset text-decoration-none" href="@(url("staff/notifications"))"><span><i class="bi bi-bell me-2"></i>Notifications</span></a>
+              <a class="menu-i text-reset text-decoration-none" href="@(url("staff/profile"))"><span><i class="bi bi-person me-2"></i>My profile</span></a>
+              </text>}
+              <form method="POST" action="@(url("logout"))">@Html.AntiForgeryToken()<button type="submit" class="menu-i w-100 bg-transparent border-0 text-reset"><span><i class="bi bi-box-arrow-right me-2"></i>Sign out</span></button></form>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pad">
+        @RenderSection("Content", required: false)
+      </div>
+    </div>
+  </div>
+</div>
+@RenderSection("Modals", required: false)
+<script>
+  
+  document.querySelectorAll('[data-side-toggle]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      var shell = document.querySelector('.shell'), open = !shell.classList.contains('side-open');
+      shell.classList.toggle('side-open', open);
+      document.querySelectorAll('button[data-side-toggle]').forEach(function (b) { b.setAttribute('aria-expanded', String(open)); });
+    });
+  });
+  
+  document.addEventListener('click', function (e) {
+    var toggle = e.target.closest('[data-menu-toggle]');
+    document.querySelectorAll('[data-menu-toggle]').forEach(function (t) {
+      var menu = document.getElementById(t.dataset.menuToggle);
+      var open = t === toggle && menu.hidden;
+      menu.hidden = !open;
+      t.setAttribute('aria-expanded', String(open));
+    });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') document.querySelectorAll('[data-menu-toggle]').forEach(function (t) {
+      document.getElementById(t.dataset.menuToggle).hidden = true;
+      t.setAttribute('aria-expanded', 'false');
+    });
+  });
+</script>
+@RenderSection("Scripts", required: false)
+</body>
+</html>

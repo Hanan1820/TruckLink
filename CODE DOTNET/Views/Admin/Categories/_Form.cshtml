@@ -1,0 +1,79 @@
+
+@{
+    dynamic category = ViewData["category"];
+    dynamic editing = ViewData["editing"];
+}
+
+
+@{
+dynamic temp = old("requires_temperature_control") != null ? (bool)old("requires_temperature_control") : (bool)category.RequiresTemperatureControl;
+}
+            <div class="card-tl p-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-grid-3x3-gap"></i></div>
+                <div><h2 class="h-card">Category</h2>
+                     <p class="kv mb-0">Customers pick a category for every item they add in step 3</p></div></div>
+              <div class="row g-3">
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <input class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("category_name") })" id="category_name" name="category_name" value="@(old("category_name", category.CategoryName))" required maxlength="60" autocomplete="off">
+                @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-12", ["name"] = "category_name", ["label"] = "Category name", ["required"] = true, ["track"] = editing, ["original"] = category.CategoryName, ["icon"] = "bi-tag", ["slot"] = __slot1 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <textarea class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("description") })" id="description" name="description" rows="3" maxlength="255">@(old("description", category.Description))</textarea>
+                @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-12", ["name"] = "description", ["label"] = "Description", ["track"] = editing, ["original"] = category.Description, ["icon"] = "bi-text-paragraph", ["hint"] = "Examples of the items it covers (255 characters at most)", ["slot"] = __slot2 }))
+              </div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-truck"></i></div>
+                <div><h2 class="h-card">Vehicle match</h2>
+                     <p class="kv mb-0">Used by the measurement step to recommend a vehicle</p></div></div>
+              <div class="row g-3">
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <div class="row g-3">
+                    @foreach (var __v4 in new object[] { new object[] { false, "No", "bi-thermometer-half", "Standard handling" }, new object[] { true, "Yes", "bi-snow", "Needs a Temp-Controlled vehicle" } }) {
+dynamic val = At(__v4, 0);
+dynamic label = At(__v4, 1);
+dynamic icon = At(__v4, 2);
+dynamic text = At(__v4, 3);<text>
+                    @{
+dynamic on = temp == val;
+}
+                    <div class="col-6"><label class="@Cls(new Dictionary<string, object?> { ["0"] = "d-flex align-items-center gap-3", ["pick-on"] = on, ["pick"] = !on })" for="temp_@(val ? "yes" : "no")" style="cursor:pointer" data-pick>
+                      <input class="visually-hidden" type="radio" id="temp_@(val ? "yes" : "no")" name="requires_temperature_control" value="@(val ? 1 : 0)" @(Truthy(on) ? "checked" : "") required>
+                      <div class="@Cls(new Dictionary<string, object?> { ["0"] = "ic-box", ["ic-on"] = on })"><i class="bi @(icon)"></i></div>
+                      <div><div style="font-weight:700;font-size:14.5px">@(label)</div>
+                           <div class="kv">@(text)</div></div>
+                      <i class="bi bi-check-circle-fill ms-auto" style="color:var(--p);font-size:19px" data-pick-check @Html.Raw((!(Truthy(on)) ? " hidden " : ""))></i>
+                    </label></div>
+                    </text>}
+                  </div>
+                @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-12", ["name"] = "requires_temperature_control", ["for"] = "temp_no", ["label"] = "Temperature control", ["required"] = true, ["track"] = editing, ["original"] = (bool)category.RequiresTemperatureControl, ["format"] = "bool", ["icon"] = "bi-thermometer-half", ["slot"] = __slot3 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  @await Html.PartialAsync("~/Views/Shared/_Sel.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["name"] = "recommended_vehicle_type", ["value"] = old("recommended_vehicle_type", category.RecommendedVehicleType), ["options"] = TruckLink.Models.Vehicle.TypeOptions(), ["placeholder"] = "Select a vehicle type", ["invalid"] = errors.Has("recommended_vehicle_type") }))
+                @{ var __slot4 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-12", ["name"] = "recommended_vehicle_type", ["label"] = "Matched vehicle type", ["required"] = true, ["track"] = editing, ["original"] = category.RecommendedVehicleType, ["icon"] = "bi-truck", ["slot"] = __slot4 }))
+              </div>
+            </div>
+
+@section Scripts {
+<script>
+  
+  (function () {
+    var form = document.getElementById('record-form'), radios = form.querySelectorAll('[name=requires_temperature_control]');
+    var type = form.querySelector('[name=recommended_vehicle_type]'), typeSel = type.closest('[data-sel]');
+    function paint() {
+      radios.forEach(function (r) {
+        var card = r.closest('[data-pick]');
+        card.classList.toggle('pick-on', r.checked);
+        card.classList.toggle('pick', !r.checked);
+        card.querySelector('.ic-box').classList.toggle('ic-on', r.checked);
+        card.querySelector('[data-pick-check]').hidden = !r.checked;
+      });
+    }
+    radios.forEach(function (r) {
+      r.addEventListener('change', function () {
+        paint();
+        if (r.checked && r.value === '1' && type.value !== 'Temp-Controlled') typeSel.dispatchEvent(new CustomEvent('sel:set', { detail: 'Temp-Controlled' }));
+      });
+    });
+  })();
+</script>
+}

@@ -1,0 +1,50 @@
+
+@{ Layout = "~/Views/Shared/_CustomerLayout.cshtml"; }
+@{
+    dynamic draft = ViewData["draft"];
+    dynamic services = ViewData["services"];
+}
+
+
+
+@{ ViewData["title"] = "New booking"; }
+
+@section Content {
+    @{ dynamic selected = old("service_id", Get(draft, "service_id")); }
+    <div class="crumb"><a href="@(url("customer/bookings"))" class="text-reset text-decoration-none">My Bookings</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>New Booking</b></div>
+    <div class="page-head"><div><h1 class="h-page">Create a new booking</h1><p class="h-sub">Six quick steps. We handle the measuring and the vehicle choice for you.</p></div></div>
+    @await Html.PartialAsync("~/Views/Shared/_Stepbar.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["current"] = 1, ["base"] = url("customer/bookings/create") }))
+    <form method="POST" action="@(route("customer.bookings.create.service.save"))">
+    @Html.AntiForgeryToken()
+    <div class="card-tl p-4 mb-3" style="padding:28px!important">
+      <div class="sec-head"><div class="sec-ic"><i class="bi bi-truck"></i></div>
+        <div><h2 class="h-card">Which service do you need?</h2><p class="kv mb-0">Choose the main transport service. Packing, labor and storage come later.</p></div></div>
+      <div class="row g-3">
+        
+        @foreach (var service in services) {<text>
+        <div class="col-6"><label class="@Cls(new Dictionary<string, object?> { ["0"] = "pick d-flex gap-3 align-items-center", ["pick-on"] = selected == service.ServiceId })">
+          <input type="radio" name="service_id" value="@(service.ServiceId)" class="visually-hidden" @(selected == service.ServiceId ? "checked" : "") required>
+          @await Html.PartialAsync((string)TlView(At(TruckLink.Models.Service.ILLUSTRATIONS, service.ServiceName) ?? "svg.svc-single-move"))
+          <div style="flex:1"><div style="font-weight:700;font-size:16px">@(service.ServiceName)</div><div class="kv">@(service.Description)</div>
+          <div class="mt-2 d-flex align-items-center gap-2">@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = service.ServiceType })<span style="font-size:13px;color:var(--mu)">from <b style="color:var(--tx)">@(Sar(service.BasePrice)) SAR</b> · @(service.PricingUnit)</span></div></div></label></div>
+        </text>}
+      </div>
+      @if (errors.Has("service_id")) { var message = errors.First("service_id");<text><div class="err mt-3"><i class="bi bi-exclamation-circle-fill"></i> @(message)</div></text>}
+    </div>
+    <div class="d-flex justify-content-between"><button type="submit" formaction="@(route("customer.bookings.create.cancel"))" formnovalidate class="btn btn-ghost b-md"><i class="bi bi-x-lg"></i> Cancel</button><button type="submit" class="@Cls(new Dictionary<string, object?> { ["0"] = "btn b-lg", ["btn-tl"] = selected, ["btn-dis"] = !selected })" @(!selected ? "disabled" : "") data-continue>Continue <i class="bi bi-arrow-right"></i></button></div>
+    </form>
+}
+
+@section Scripts {
+<script>
+  
+  document.querySelectorAll('input[name=service_id]').forEach(function (radio) {
+    radio.addEventListener('change', function () {
+      document.querySelectorAll('input[name=service_id]').forEach(function (r) { r.closest('.pick').classList.toggle('pick-on', r.checked); });
+      var go = document.querySelector('[data-continue]');
+      go.disabled = false;
+      go.classList.replace('btn-dis', 'btn-tl');
+    });
+  });
+</script>
+}

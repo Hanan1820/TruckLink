@@ -1,0 +1,115 @@
+
+@{
+    dynamic booking = ViewData["booking"];
+    dynamic crewSize = ViewData["crewSize"];
+    dynamic defaultCrew = ViewData["defaultCrew"];
+    dynamic draft = ViewData["draft"];
+    dynamic driverOptions = ViewData["driverOptions"];
+    dynamic moverOptions = ViewData["moverOptions"];
+    dynamic vehicleOptions = ViewData["vehicleOptions"];
+    dynamic warehouse = ViewData["warehouse"];
+    dynamic withAssembly = ViewData["withAssembly"];
+}
+
+
+@{
+dynamic chosenVehicle = (int)old("vehicle_id", At(draft, "vehicle_id") ?? At(First(vehicleOptions,  (Func<dynamic, dynamic>)((o) => At(o, "reason") == null)), "vehicle").VehicleId ?? 0);
+dynamic chosenDriver = (int)old("driver_id", At(draft, "driver_id") ?? At(First(driverOptions,  (Func<dynamic, dynamic>)((o) => At(o, "reason") == null)), "staff").StaffId ?? 0);
+dynamic freeMovers = Filter(moverOptions,  (Func<dynamic, dynamic>)((o) => At(o, "reason") == null));
+dynamic chosenCrew = ArrayMap("intval", old("crew", At(draft, "crew") ?? defaultCrew));
+dynamic storage = booking.StorageRequest;
+dynamic freeStart = StartOfDay(Copy(booking.PickupDatetime));
+dynamic freeEnd = AddDays(Copy(freeStart), TruckLink.Support.Services.StorageCalculator.FREE_DAYS);
+dynamic sectionNote = "font-weight:500;text-transform:none;letter-spacing:0;color:var(--mu)";
+}
+@{ PushWriter(new System.IO.StringWriter()); }
+  <form method="POST" action="@(route("admin.bookings.accept", booking))">
+    @Html.AntiForgeryToken()
+    <div class="m-head d-flex justify-content-between align-items-start">
+      <div class="d-flex gap-3"><div class="sec-ic" style="background:var(--okb);color:var(--ok)"><i class="bi bi-check-circle-fill"></i></div>
+        <div><h2 class="h-card" id="accept-title">Accept request &amp; assign resources</h2><p class="kv mb-0">@(booking.Reference) · @(booking.Customer.FullName) · @(Format(booking.PickupDatetime, "d M Y, H:i"))</p></div></div>
+      <i class="bi bi-x-lg" data-modal-close role="button" tabindex="0" aria-label="Close" style="color:var(--mu);font-size:17px;cursor:pointer"></i>
+    </div>
+    <div class="m-body">
+      <div class="cap mb-3">1 - Vehicle <span style="@(sectionNote)">· filtered to @(booking.RecommendedVehicleType), available on @(Format(booking.PickupDatetime, "d M"))</span></div>
+      @foreach (var (option, loop) in WithLoop((object?)(vehicleOptions))) {<text>
+      @{
+dynamic vehicle = At(option, "vehicle");
+dynamic last = loop.Last;
+}
+      @if (At(option, "reason") == null) {<text>
+      <label class="@Cls(new Dictionary<string, object?> { ["0"] = "pick d-flex align-items-center gap-3", ["pick-on"] = chosenVehicle == vehicle.VehicleId, ["mb-2"] = !last, ["mb-4"] = last })" data-pick-group="vehicle">
+        <input class="form-check-input" type="radio" name="vehicle_id" value="@(vehicle.VehicleId)" @(chosenVehicle == vehicle.VehicleId ? "checked" : "") required style="margin:0;width:19px;height:19px">
+        <span style="display:contents" data-art-on @Html.Raw((!(chosenVehicle == vehicle.VehicleId) ? " hidden " : ""))>@await Html.PartialAsync("~/Views/Svg/PickVehicleSelected.cshtml")</span><span style="display:contents" data-art-off @Html.Raw((chosenVehicle == vehicle.VehicleId ? " hidden " : ""))>@await Html.PartialAsync("~/Views/Svg/PickVehicle.cshtml")</span>
+        <div style="flex:1"><div style="font-weight:700;font-size:15px">@(vehicle.PlateNumber) - @(vehicle.VehicleType)</div><div class="kv">@(Num(vehicle.CapacityVolumeM3)) m³ · @(NumberFormat(vehicle.MaxWeightKg)) kg</div></div>
+        <div style="text-align:right">@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = "Available" })<div class="kv mt-1">Load @(vehicle.CapacityVolumeM3 > 0 ? Round(booking.TotalVolumeM3 / vehicle.CapacityVolumeM3 * 100) : 0)%</div></div>
+      </label>
+      </text>} else {<text>
+      <div class="@Cls(new Dictionary<string, object?> { ["0"] = "pick-dis d-flex align-items-center gap-3", ["mb-2"] = !last, ["mb-4"] = last })" style="opacity:.62">
+        <input class="form-check-input" type="radio" name="vehicle_id" disabled style="margin:0;width:19px;height:19px">
+        @await Html.PartialAsync("~/Views/Svg/PickVehicleDisabled.cshtml")
+        <div style="flex:1"><div style="font-weight:700;font-size:15px">@(vehicle.PlateNumber) - @(vehicle.VehicleType)</div><div class="kv">@(At(option, "reason"))</div></div>
+        @await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = At(option, "status") })
+      </div>
+      </text>}
+      </text>}
+      @if (errors.Has("vehicle_id")) { var message = errors.First("vehicle_id");<text><div class="err mb-4" style="margin-top:-12px"><i class="bi bi-exclamation-circle-fill"></i> @(message)</div></text>}
+
+      <div class="cap mb-3">2 - Driver</div>
+      @if (!IsEmpty(Values(WhereNull(driverOptions, "reason")))) {<text>
+@foreach (var (option, loop) in WithLoop((object?)(Values(WhereNull(driverOptions, "reason"))))) {<text>
+      @{
+dynamic driver = At(option, "staff");
+}
+      <label class="@Cls(new Dictionary<string, object?> { ["0"] = "pick d-flex align-items-center gap-3", ["pick-on"] = chosenDriver == driver.StaffId, ["mb-2"] = !loop.Last, ["mb-4"] = loop.Last })" data-pick-group="driver">
+        <input class="form-check-input" type="radio" name="driver_id" value="@(driver.StaffId)" @(chosenDriver == driver.StaffId ? "checked" : "") required style="margin:0;width:19px;height:19px">
+        @await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = driver.FirstName, ["last"] = driver.LastName, ["style"] = "width:42px;height:42px;font-size:14px" })
+        <div style="flex:1"><div style="font-weight:700;font-size:15px">@(driver.FullName)</div><div class="kv">Driver · licence @(driver.LicenseNumber)@if (Truthy(driver.ShiftStart)) {<text> · free @(driver.ShiftStartLabel)–@(driver.ShiftEndLabel)</text>}</div></div>
+        <div style="text-align:right">@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = "Available" })<div class="kv mt-1">@if (Truthy(At(option, "rating"))) {<text><i class="bi bi-star-fill" style="color:#B7791F;font-size:11px"></i> @(NumberFormat(At(option, "rating"), 1)) · </text>}@(At(option, "jobs")) @(Plural("job", At(option, "jobs")))</div></div>
+      </label>
+      </text>}
+</text>} else {<text>
+      <div class="al a-wn mb-4" style="font-size:13.5px"><i class="bi bi-exclamation-triangle-fill" style="font-size:16px"></i><div>No driver is on shift and free at @(Format(booking.PickupDatetime, "H:i")) on @(Format(booking.PickupDatetime, "d M")).</div></div>
+      </text>}
+      @if (errors.Has("driver_id")) { var message = errors.First("driver_id");<text><div class="err mb-4" style="margin-top:-12px"><i class="bi bi-exclamation-circle-fill"></i> @(message)</div></text>}
+
+      <div class="cap mb-3">3 - Moving crew <span style="@(sectionNote)">· @(crewSize) recommended for @(NumberFormat(booking.TotalVolumeM3, 2)) m³@(withAssembly ? " with assembly" : "")</span></div>
+      <div class="row g-2">
+        @foreach (var option in Values(freeMovers)) {<text>
+        @{
+dynamic mover = At(option, "staff");
+dynamic on = InArray(mover.StaffId, chosenCrew, true);
+}
+        <div class="col-4"><label class="@Cls(new Dictionary<string, object?> { ["0"] = "pick d-flex align-items-center gap-2", ["pick-on"] = on })" style="padding:12px" data-pick-toggle><input class="form-check-input" type="checkbox" name="crew[]" value="@(mover.StaffId)" @(Truthy(on) ? "checked" : "") style="margin:0;width:17px;height:17px">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = mover.FirstName, ["last"] = mover.LastName, ["sm"] = true })<div><div style="font-weight:600;font-size:13.5px">@(mover.FullName)</div><div class="kv" style="font-size:11.5px">Mover@(mover.Specialty ? " · " + mover.Specialty : "")</div></div></label></div>
+        </text>}
+      </div>
+      @if (errors.Has("crew") || errors.Has("crew.*")) {<text><div class="err"><i class="bi bi-exclamation-circle-fill"></i> @((Truthy(errors.First("crew")) ? errors.First("crew") : errors.First("crew.*")))</div></text>}
+      @if (Truthy(warehouse)) {<text>
+      <div class="al a-in mt-4" style="font-size:13.5px"><i class="bi bi-buildings-fill" style="font-size:16px"></i><div>Premium Storage is included. On completion the crew delivers to <b>@(warehouse.WarehouseName)</b>, and the free period runs <b>@(IsSameMonth(freeStart, freeEnd) ? Format(freeStart, "d") : Format(freeStart, "d M"))–@(Format(freeEnd, "d M"))</b>.</div></div>
+      </text>}
+    </div>
+    <div class="m-foot justify-content-between">
+      <button type="button" class="btn btn-ghost b-md" data-modal-close>Cancel</button>
+      <div class="d-flex gap-2"><button type="submit" name="intent" value="draft" formnovalidate class="btn btn-out b-md">Save as draft</button><button type="submit" class="btn btn-ok b-md"><i class="bi bi-check-circle"></i> Accept &amp; notify customer</button></div>
+    </div>
+  </form>
+@{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_Modal.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["id"] = "accept", ["width"] = "760", ["padding"] = "46", ["open"] = errors.HasAny(new object[] { "vehicle_id", "driver_id", "crew", "crew.*" }), ["label"] = "accept-title", ["slot"] = __slot1 }))
+
+@section Scripts {
+<script>
+  
+  document.querySelectorAll('[data-pick-group]').forEach(function (pick) {
+    pick.querySelector('input').addEventListener('change', function () {
+      document.querySelectorAll('[data-pick-group="' + pick.dataset.pickGroup + '"]').forEach(function (p) {
+        var on = p.querySelector('input').checked;
+        p.classList.toggle('pick-on', on);
+        var a = p.querySelector('[data-art-on]'), b = p.querySelector('[data-art-off]');
+        if (a) { a.hidden = !on; b.hidden = on; }
+      });
+    });
+  });
+  document.querySelectorAll('[data-pick-toggle] input').forEach(function (box) {
+    box.addEventListener('change', function () { box.closest('[data-pick-toggle]').classList.toggle('pick-on', box.checked); });
+  });
+</script>
+}

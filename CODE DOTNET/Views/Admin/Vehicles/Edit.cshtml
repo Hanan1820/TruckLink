@@ -1,0 +1,122 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic upcoming = ViewData["upcoming"];
+    dynamic vehicle = ViewData["vehicle"];
+}
+
+
+
+
+
+@{ ViewData["title"] = "Edit " + vehicle.PlateNumber; }
+@{ ViewData["search_placeholder"] = "Search vehicles by plate, type or status"; }
+@{ ViewData["search_action"] = route("admin.vehicles.index"); }
+
+@{
+dynamic type = old("vehicle_type", vehicle.VehicleType);
+dynamic temp = old("is_temperature_controlled") != null ? (bool)old("is_temperature_controlled") : vehicle.IsTemperatureControlled;
+dynamic refs = All(Pluck(upcoming, "reference"));
+dynamic attr =  (Func<dynamic, dynamic>)((key) => At(Request.ATTRIBUTES, key));
+dynamic messages = new Dictionary<string, object?> { ["plate_number"] = new Dictionary<string, object?> { ["required"] = L("validation.required", new Dictionary<string, object?> { ["attribute"] = attr("plate_number") }), ["pattern"] = "Use the Saudi plate format: up to 4 digits, a space and 3 letters (e.g. 4821 TRK)." }, ["capacity_volume_m3"] = new Dictionary<string, object?> { ["required"] = L("validation.required", new Dictionary<string, object?> { ["attribute"] = attr("capacity_volume_m3") }), ["min"] = "Capacity volume must be greater than zero.", ["max"] = L("validation.max.numeric", new Dictionary<string, object?> { ["attribute"] = attr("capacity_volume_m3"), ["max"] = "9999.99" }), ["number"] = L("validation.numeric", new Dictionary<string, object?> { ["attribute"] = attr("capacity_volume_m3") }) }, ["max_weight_kg"] = new Dictionary<string, object?> { ["required"] = L("validation.required", new Dictionary<string, object?> { ["attribute"] = attr("max_weight_kg") }), ["range"] = "Maximum weight must be between 100 and 40,000 kg.", ["number"] = L("validation.numeric", new Dictionary<string, object?> { ["attribute"] = attr("max_weight_kg") }) } };
+}
+
+@section Content {
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a> <i class="bi bi-chevron-right" style="font-size:9px"></i>
+          <a href="@(route("admin.vehicles.index"))" class="text-reset text-decoration-none">Fleet</a> <i class="bi bi-chevron-right" style="font-size:9px"></i>
+          <a href="@(route("admin.vehicles.show", vehicle))" class="text-reset text-decoration-none">@(vehicle.PlateNumber)</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>Edit</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">Edit Vehicle &#183; @(vehicle.PlateNumber)</h1>
+               <p class="h-sub">Record <span class="mono-d">@(vehicle.Code)</span> &#183;
+                  last updated @(Format((vehicle.UpdatedAt ?? vehicle.CreatedAt), "d M Y"))</p></div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-out b-md" href="@(route("admin.vehicles.show", vehicle))">Cancel</a>
+            <button type="submit" form="vehicle-form" class="btn btn-tl b-md"><i class="bi bi-check-lg"></i> Save Changes</button>
+          </div>
+        </div>
+        <div class="al a-wn mb-4" data-unsaved hidden><i class="bi bi-pencil-fill" style="font-size:18px"></i>
+          <div><b data-unsaved-text></b> Modified fields are marked with
+            <span class="dot-chg"></span> . Nothing is written to the record until you save.</div></div>
+        <form id="vehicle-form" method="POST" action="@(route("admin.vehicles.update", vehicle))" class="row g-4">
+          @Html.AntiForgeryToken() <input type="hidden" name="_method" value="PUT"> 
+          <div class="col-8">
+            <div class="card-tl p-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-upc-scan"></i></div>
+                <div><h2 class="h-card">Identification</h2>
+                     <p class="kv mb-0">Plate number is used on delivery documents and cannot be blank</p></div></div>
+              <div class="row g-3">
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <input class="fld" id="plate_number" name="plate_number" value="@(old("plate_number", vehicle.PlateNumber))" required maxlength="20" pattern="^[0-9]{1,4} [A-Za-z]{3}$"
+                         style="text-transform:uppercase" autocomplete="off" title="Up to 4 digits, a space and 3 letters (e.g. 4821 TRK)">
+                @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "plate_number", ["label"] = "Plate number", ["required"] = true, ["original"] = vehicle.PlateNumber, ["format"] = "upper", ["icon"] = "bi-upc-scan", ["slot"] = __slot1 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  @await Html.PartialAsync("~/Views/Shared/_Sel.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["name"] = "vehicle_type", ["value"] = type, ["options"] = TruckLink.Models.Vehicle.TypeOptions(), ["placeholder"] = "Select a vehicle type" }))
+                @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "vehicle_type", ["label"] = "Vehicle type", ["required"] = true, ["original"] = vehicle.VehicleType, ["icon"] = "bi-truck", ["slot"] = __slot2 }))
+              </div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-box-seam"></i></div>
+                <div><h2 class="h-card">Capacity &amp; capability</h2>
+                     <p class="kv mb-0">Changing these values changes which bookings this vehicle is
+                        recommended for</p></div></div>
+              <div class="row g-3">
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <div class="d-flex align-items-center gap-2">
+                    <input class="fld" id="capacity_volume_m3" name="capacity_volume_m3" type="number" step="0.01" min="0.01" max="9999.99" value="@(old("capacity_volume_m3", vehicle.CapacityVolumeM3))" required>
+                    <span class="pill p-neu">m&#179;</span></div>
+                @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "capacity_volume_m3", ["label"] = "Capacity volume", ["required"] = true, ["original"] = vehicle.CapacityVolumeM3, ["format"] = "decimal", ["unit"] = "m³", ["icon"] = "bi-box", ["slot"] = __slot3 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <div class="d-flex align-items-center gap-2">
+                    <input class="fld" id="max_weight_kg" name="max_weight_kg" type="number" step="0.01" min="100" max="40000" value="@(old("max_weight_kg", vehicle.MaxWeightKg))" required>
+                    <span class="pill p-neu">kg</span></div>
+                @{ var __slot4 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "max_weight_kg", ["label"] = "Maximum weight", ["required"] = true, ["original"] = vehicle.MaxWeightKg, ["format"] = "number", ["unit"] = "kg", ["icon"] = "bi-speedometer2", ["slot"] = __slot4 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  @await Html.PartialAsync("~/Views/Admin/Vehicles/Partials/TempPicks.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["yesText"] = "Refrigerated" }))
+                @{ var __slot5 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-12", ["name"] = "is_temperature_controlled", ["for"] = "temp_no", ["label"] = "Temperature controlled", ["required"] = true, ["original"] = vehicle.IsTemperatureControlled, ["format"] = "bool", ["icon"] = "bi-thermometer-half", ["slot"] = __slot5 }))
+              </div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-toggle-on"></i></div>
+                <div><h2 class="h-card">Availability</h2>
+                     <p class="kv mb-0">A vehicle set to Maintenance is removed from the recommendation
+                        pool</p></div></div>
+              <div class="row g-3">
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  @await Html.PartialAsync("~/Views/Shared/_Sel.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["name"] = "vehicle_status", ["value"] = old("vehicle_status", vehicle.VehicleStatus), ["options"] = TruckLink.Models.Vehicle.StatusOptions() }))
+                @{ var __slot6 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-12", ["name"] = "vehicle_status", ["label"] = "Vehicle status", ["required"] = true, ["original"] = vehicle.VehicleStatus, ["icon"] = "bi-toggle-on", ["slot"] = __slot6 }))
+              </div>
+            </div>
+          </div>
+
+          <div class="col-4">
+            <div class="card-tl p-4 summary" data-changes>
+              <div class="cap mb-3">Change summary</div>
+              <div class="kv" data-no-changes>No changes yet.</div>
+              <template data-diff-row><div class="diff"><i data-diff-icon></i>
+                <div style="flex:1"><div class="kv"><b data-diff-label></b></div>
+                  <div><span class="old"></span>
+                       <i class="bi bi-arrow-right mx-1" style="font-size:10px"></i>
+                       <span class="new"></span></div>
+                  <div class="kv" style="color:var(--dg)" data-diff-note hidden></div></div></div></template>
+              <button type="submit" class="btn btn-dis b-md w-100 mt-3" disabled data-save data-label="Save Changes">
+                <i class="bi bi-check-lg"></i> <span data-save-text>Save Changes</span></button>
+            </div>
+
+            <div class="al a-dg mt-4" data-problems hidden><i class="bi bi-exclamation-octagon-fill" style="font-size:18px"></i>
+              <div><b data-problems-title></b><div style="margin-top:6px" data-problems-text></div></div></div>
+
+            @if (Truthy(IsNotEmpty(upcoming))) {<text>
+            <div class="al a-wn mt-3" data-side-effect data-field="vehicle_status" data-when-not="Available" hidden><i class="bi bi-exclamation-triangle-fill" style="font-size:18px"></i>
+              <div><b>Side effect of this change</b><div style="margin-top:6px">Setting the status to
+                <b data-side-value></b> will unassign this vehicle from
+                <b>@(Count(refs)) accepted @(Plural("booking", Count(refs)))</b> (@(Implode(", ", refs))). @(Count(refs) == 1 ? "It" : (Count(refs) == 2 ? "Both" : "All " + Count(refs))) will return to the
+                queue for a new vehicle.</div></div></div>
+            </text>}
+          </div>
+        </form>
+}
+
+@await Html.PartialAsync("~/Views/Admin/Vehicles/Partials/FormScript.cshtml")
+@await Html.PartialAsync("~/Views/Admin/Partials/ChangeTracking.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["form"] = "vehicle-form", ["messages"] = messages, ["recordName"] = "registered vehicle" }))

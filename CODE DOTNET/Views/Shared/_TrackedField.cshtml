@@ -1,0 +1,40 @@
+
+@{
+    dynamic name = ViewData["name"];
+    dynamic label = ViewData["label"];
+    dynamic original = ViewData["original"] ?? "";
+    dynamic required = ViewData["required"] ?? false;
+    dynamic unit = ViewData["unit"] ?? null;
+    dynamic icon = ViewData["icon"] ?? "bi-pencil";
+    dynamic format = ViewData["format"] ?? "text";
+    dynamic @for = ViewData["for"] ?? null;
+    dynamic track = ViewData["track"] ?? true;
+    dynamic hint = ViewData["hint"] ?? null;
+    dynamic display = ViewData["display"] ?? null;
+    dynamic slot = ViewData["slot"]; var attributes = new AttributeBag(ViewData);
+}
+
+
+
+
+
+
+
+
+
+
+@{
+dynamic error = errors.First(name);
+}
+<div @(attributes) @Html.Raw((Truthy(track) ? $" data-track=\"{name}\" data-original=\"{IsBool(original) ? (int)original : original}\" data-label=\"{label}\" data-unit=\"{unit}\" data-format=\"{format}\" data-icon=\"{icon}\" @if ($display) data-display=\"{JsonEncode(display)}\" @endif @if ($error) data-server-error=\"{error}\" @endif " : ""))>
+  <label class="lbl" for="@(@for ?? name)">@(label)@if (Truthy(required)) {<text> <span class="req">*</span></text>}<span class="dot-chg" data-chg hidden></span></label>
+  @(slot)
+  @if (Truthy(hint)) {<text><div class="hint" data-hint @Html.Raw((Truthy(error) ? " hidden " : ""))>@(hint)</div></text>}
+  @if (Truthy(track)) {<text>
+  <div class="hint" data-was hidden>Was <span class="old"></span>
+       <i class="bi bi-arrow-right" style="font-size:9px"></i>
+       <span class="new"></span>@if (Truthy(unit)) {<text> @(unit)</text>}</div>
+  </text>}
+  <div class="err" data-err @Html.Raw((!(Truthy(error)) ? " hidden " : ""))><i class="bi bi-exclamation-circle-fill"></i>
+       <span data-err-text>@(error)</span></div>
+</div>

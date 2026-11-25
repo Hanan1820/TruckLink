@@ -1,0 +1,43 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic average = ViewData["average"];
+    dynamic byRating = ViewData["byRating"];
+    dynamic isDriver = ViewData["isDriver"];
+    dynamic reviews = ViewData["reviews"];
+    dynamic total = ViewData["total"];
+}
+
+
+
+@{ ViewData["title"] = "My Reviews"; }
+
+@section Content {
+        <div class="crumb"><b>Reviews</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">My Reviews</h1><p class="h-sub">What customers said about the jobs you drove</p></div>
+        </div>
+        <div class="row g-3 mb-4">
+          <div class="col-3">@await Html.PartialAsync("~/Views/Shared/_Kpi.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icon"] = "bi-star", ["value"] = total, ["label"] = "Reviews" }))</div>
+          <div class="col-3">@await Html.PartialAsync("~/Views/Shared/_Kpi.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icon"] = "bi-star-half", ["colour"] = "--wn", ["value"] = average ? NumberFormat(average, 1) + " / 5" : "-", ["label"] = "Average rating" }))</div>
+          <div class="col-3">@await Html.PartialAsync("~/Views/Shared/_Kpi.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icon"] = "bi-emoji-smile", ["colour"] = "--ok", ["value"] = (int)(At(byRating, 5) ?? 0), ["label"] = "Five-star reviews" }))</div>
+          <div class="col-3">@await Html.PartialAsync("~/Views/Shared/_Kpi.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icon"] = "bi-emoji-frown", ["colour"] = "--dg", ["value"] = (int)((At(byRating, 1) ?? 0) + (At(byRating, 2) ?? 0)), ["label"] = "Low ratings (1–2)" }))</div>
+        </div>
+        <div class="card-tl" style="overflow:hidden">
+          <table class="tbl">
+            <thead><tr><th>Rating</th><th>Review</th><th>Job</th><th>Customer</th><th>Date</th></tr></thead>
+            <tbody>
+              @if (!IsEmpty(reviews)) {<text>
+@foreach (var review in reviews) {<text>
+              <tr><td style="white-space:nowrap">@for (var i = 1; i <= 5; i++) {<text><i class="bi @(i <= review.Rating ? "bi-star-fill" : "bi-star")" style="color:@(i <= review.Rating ? "#B7791F" : "var(--line2)")"></i></text>}</td>
+                <td style="max-width:420px">@((Truthy(review.Comment) ? review.Comment : "-"))</td><td class="mono-d" style="white-space:nowrap">@(review.Booking.Reference)</td>
+                <td>@(review.Customer.FullName)</td><td class="kv" style="white-space:nowrap">@(Format(review.CreatedAt, "d M Y"))</td></tr>
+              </text>}
+</text>} else {<text>
+              <tr><td colspan="5" class="kv">@(isDriver ? "No reviews yet - customers can rate a job once it is delivered." : "Reviews are given on the jobs a driver leads.")</td></tr>
+              </text>}
+            </tbody>
+          </table>
+          @await Html.PartialAsync("~/Views/Shared/_Pager.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["paginator"] = reviews, ["label"] = Plural("review", Total(reviews)) }))
+        </div>
+}

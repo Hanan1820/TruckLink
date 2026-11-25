@@ -1,0 +1,17 @@
+
+@model TruckLink.Support.ViewComponents.AvatarModel
+@{
+    var cls = "avatar" + (Model.Sm ? " av-sm" : "") + (Model.Href != null ? " text-decoration-none" : Model.Button ? " p-0 border-0" : "") + (Model.Class != null ? " " + Model.Class : "");
+}
+@if (Model.Href != null)
+{
+    <a href="@Model.Href" class="@cls" style="@Model.Style">@Model.Initials</a>
+}
+else if (Model.Button)
+{
+    <button type="button" class="@cls" style="@Model.Style">@Model.Initials</button>
+}
+else
+{
+    <div class="@cls" style="@Model.Style">@Model.Initials</div>
+}

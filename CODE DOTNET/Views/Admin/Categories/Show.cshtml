@@ -1,0 +1,78 @@
+
+@{ Layout = "~/Views/Admin/Crud/ShowPage.cshtml"; }
+@{
+    dynamic category = ViewData["category"];
+    dynamic recent = ViewData["recent"];
+    dynamic stats = ViewData["stats"];
+    dynamic uses = ViewData["uses"];
+}
+
+@{
+dynamic page = new Dictionary<string, object?> { ["title"] = category.CategoryName, ["crumbs"] = new object[] { new object[] { "Item Categories", route("admin.item-categories.index") } }, ["search"] = new object[] { "Search categories by name or description", route("admin.item-categories.index") }, ["edit"] = route("admin.item-categories.edit", category), ["deletable"] = true, ["savedKey"] = "category:" + category.CategoryId, ["noun"] = "Category", ["code"] = category.Code };
+dynamic vehicleIcons = All(Map(Collect(TruckLink.Models.Vehicle.ICONS),  (Func<dynamic, dynamic>)((i) => new object[] { i, "--p", i })));
+}
+
+
+@section HeadIcon {
+            <div class="veh-ic" style="width:56px;height:56px;font-size:26px"><i class="bi bi-grid-3x3-gap"></i></div>
+}
+@section HeadSub {<span class="mono-d">@(category.Code)</span> &#183; matched with @(category.RecommendedVehicleType)}
+@section HeadPill {
+            @if (Truthy(category.RequiresTemperatureControl)) {<text><span class="pill p-info"><i class="bi bi-snow"></i> Temperature-sensitive</span></text>}
+}
+
+@section Main {
+            <div class="card-tl p-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-clipboard-data"></i></div>
+                <div><h2 class="h-card">Specification</h2>
+                     <p class="kv mb-0">Stored attributes of the <b>item_category</b> entity</p></div></div>
+              <div class="row g-3">
+                <div class="col-6"><div class="tile"><div class="k">Category name</div><div class="v" style="font-size:16px">@(category.CategoryName)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Matched vehicle</div><div class="v" style="font-size:16px">@(category.RecommendedVehicleType)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Temp-controlled</div><div class="v" style="font-size:16px">@(category.RequiresTemperatureControl ? "Yes" : "No")</div></div></div>
+                <div class="col-9"><div class="tile"><div class="k">Description</div><div class="kv mt-1" style="font-size:14px">@((Truthy(category.Description) ? category.Description : "-"))</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Added by</div><div class="v" style="font-size:16px">@(category.Admin?.FullName ?? "-")</div><div class="u">@(category.Admin?.Code)</div></div></div>
+              </div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-box-seam"></i></div>
+                <div><h2 class="h-card">Recent items</h2>
+                     <p class="kv mb-0">The last booked items in this category</p></div></div>
+              <table class="tbl" style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+                <thead><tr><th>Item</th><th>Booking</th><th>Quantity</th><th>Size</th><th>Volume</th></tr></thead>
+                <tbody>
+                  @if (!IsEmpty(recent)) {<text>
+@foreach (var item in recent) {<text>
+                  <tr><td style="font-weight:600">@(item.ItemName)</td>
+                      <td class="mono-d"><a class="text-reset text-decoration-none" href="@(route("admin.bookings.show", item.Booking))">@(item.Booking.Reference)</a></td>
+                      <td class="mono-d">@(item.Quantity)</td><td class="kv">@(item.DimensionsLabel ?? "-")</td>
+                      <td class="mono-d">@(item.EstimatedVolumeM3 != null ? NumberFormat(item.EstimatedVolumeM3, 2) + " m³" : "-")</td></tr>
+                  </text>}
+</text>} else {<text>
+                  <tr><td colspan="5" class="kv">No item has been booked in this category yet.</td></tr>
+                  </text>}
+                </tbody>
+              </table>
+            </div>
+}
+
+@section Side {
+            <div class="card-tl p-4 summary">
+              <div class="cap mb-3">Usage</div>
+              <div class="sum-row"><span>Items booked</span><span>@(At(stats, "items"))</span></div>
+              <div class="sum-row"><span>Bookings</span><span>@(At(stats, "bookings"))</span></div>
+              <div class="sum-row"><span>Volume moved</span><span>@(Num(Round(At(stats, "volume"), 2))) m&#179;</span></div>
+            </div>
+            @await Html.PartialAsync("~/Views/Admin/Crud/Partials/StatusList.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icons"] = vehicleIcons, ["current"] = category.RecommendedVehicleType, ["title"] = "Vehicle match" }))
+}
+
+@section Modals {
+@{ PushWriter(new System.IO.StringWriter()); }
+    <div class="veh-ic"><i class="bi bi-grid-3x3-gap"></i></div>
+    <div style="flex:1">
+      <div style="font-weight:700;font-size:15px">@(category.CategoryName)</div>
+      <div class="kv">Matched with @(category.RecommendedVehicleType)@(category.RequiresTemperatureControl ? " · temperature-sensitive" : "")</div>
+    </div>
+  @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_DeleteGuard.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["title"] = "Delete category " + category.CategoryName + "?", ["code"] = category.Code, ["table"] = "item_categories", ["noun"] = "category", ["uses"] = uses, ["confirm-label"] = "Type the category name to confirm", ["confirm-value"] = category.CategoryName, ["delete-action"] = route("admin.item-categories.destroy", category), ["delete-note"] = "Available only once no booked item uses this category.", ["summary"] = __slot1 }))
+}

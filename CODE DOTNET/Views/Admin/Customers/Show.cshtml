@@ -1,0 +1,90 @@
+
+@{ Layout = "~/Views/Admin/Crud/ShowPage.cshtml"; }
+@{
+    dynamic activity = ViewData["activity"];
+    dynamic bookings = ViewData["bookings"];
+    dynamic customer = ViewData["customer"];
+    dynamic uses = ViewData["uses"];
+}
+
+@{
+dynamic page = new Dictionary<string, object?> { ["title"] = customer.FullName, ["crumbs"] = new object[] { new object[] { "Customers", route("admin.customers.index") } }, ["search"] = new object[] { "Search customers by name, email, phone or city", route("admin.customers.index") }, ["edit"] = route("admin.customers.edit", customer), ["deletable"] = true, ["savedKey"] = "customer:" + customer.CustomerId, ["noun"] = "Customer", ["code"] = customer.Code };
+dynamic icons = TruckLink.Models.Customer.STATUS_ICONS;
+}
+
+
+@section HeadIcon {
+            @await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = customer.FirstName, ["last"] = customer.LastName, ["style"] = "width:56px;height:56px;font-size:19px" })
+}
+@section HeadSub {@(customer.City) &#183; <span class="mono-d">@(customer.Code)</span> &#183; customer since @(Format(customer.CreatedAt, "d M Y"))}
+@section HeadPill {
+            @await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = customer.AccountStatus, ["icon"] = At(At(icons, customer.AccountStatus), 0) + "-fill" })
+}
+
+@section Main {
+            <div class="card-tl p-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-clipboard-data"></i></div>
+                <div><h2 class="h-card">Account</h2>
+                     <p class="kv mb-0">Stored attributes of the <b>customer</b> entity</p></div></div>
+              <div class="row g-3">
+                <div class="col-6"><div class="tile"><div class="k">Email</div><div class="v" style="font-size:16px">@(customer.Email)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Phone</div><div class="v" style="font-size:16px">@(customer.PhoneDisplay)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">City</div><div class="v" style="font-size:16px">@(customer.City)</div></div></div>
+                <div class="col-6"><div class="tile"><div class="k">Address</div><div class="v" style="font-size:16px">@((Truthy(customer.Address) ? customer.Address : "-"))</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Saved card</div>
+                     <div class="v" style="font-size:16px@(customer.HasSavedCard() ? ";font-family:ui-monospace,Menlo,monospace" : "")">@(customer.HasSavedCard() ? Substr(customer.CardNumber, -4) : "None")</div>
+                     @if (Truthy(customer.HasSavedCard())) {<text><div class="u">@(customer.CardType) &#183; expires @(customer.ExpiryDate)</div></text>}</div></div>
+                <div class="col-3"><div class="tile"><div class="k">Record id</div><div class="v" style="font-family:ui-monospace,Menlo,monospace;font-size:16px">@(customer.Code)</div></div></div>
+              </div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-clipboard-check"></i></div>
+                <div><h2 class="h-card">Bookings</h2>
+                     <p class="kv mb-0">Every booking request this customer has made</p></div></div>
+              <table class="tbl" style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+                <thead><tr><th>Booking</th><th>Route</th><th>Pickup</th><th>Total</th><th>Status</th></tr></thead>
+                <tbody>
+                  @if (!IsEmpty(bookings)) {<text>
+@foreach (var booking in bookings) {<text>
+                  <tr><td class="mono-d" style="font-weight:600"><a class="text-reset text-decoration-none" href="@(route("admin.bookings.show", booking))">@(booking.Reference)</a></td>
+                      <td>@(booking.PickupCity) &#8594; @(booking.DropoffCity)</td><td>@(Format(booking.PickupDatetime, "d M Y, H:i"))</td>
+                      <td class="mono-d">@(Sar(booking.TotalAmount)) SAR</td><td>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = booking.BookingStatus })</td></tr>
+                  </text>}
+</text>} else {<text>
+                  <tr><td colspan="5" class="kv">No bookings yet.</td></tr>
+                  </text>}
+                </tbody>
+              </table>
+            </div>
+}
+
+@section Side {
+            <div class="card-tl p-4 summary">
+              <div class="cap mb-3">Activity</div>
+              <div class="sum-row"><span>Bookings in progress</span><span>@(At(activity, "open"))</span></div>
+              <div class="sum-row"><span>Completed</span><span>@(At(activity, "completed"))</span></div>
+              <div class="sum-row"><span>Cancelled</span><span>@(At(activity, "cancelled"))</span></div>
+              <div class="sum-row"><span>Total paid</span><span>@(Sar(At(activity, "paid"))) SAR</span></div>
+              <div class="sum-row"><span>Average rating given</span><span>@(At(activity, "rating") ? NumberFormat(At(activity, "rating"), 1) + " / 5" : "-")</span></div>
+            </div>
+
+            @await Html.PartialAsync("~/Views/Admin/Crud/Partials/StatusList.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icons"] = icons, ["current"] = customer.AccountStatus }))
+
+            @if (At(activity, "open") && customer.AccountStatus != "Active") {<text>
+            <div class="al a-wn mt-4"><i class="bi bi-exclamation-triangle-fill" style="font-size:18px"></i>
+              <div><b>@(At(activity, "open")) @(Plural("booking", At(activity, "open"))) in progress</b><div style="margin-top:6px">The account is @(Strtolower(customer.AccountStatus)); review
+                @(At(activity, "open") == 1 ? "that booking" : "those bookings") in the booking queue.</div></div></div>
+            </text>}
+}
+
+@section Modals {
+@{ PushWriter(new System.IO.StringWriter()); }
+    @await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = customer.FirstName, ["last"] = customer.LastName })
+    <div style="flex:1">
+      <div style="font-weight:700;font-size:15px">@(customer.FullName)</div>
+      <div class="kv">@(customer.Email) &#183; @(customer.City) &#183; joined @(Format(customer.CreatedAt, "d M Y"))</div>
+    </div>
+    @await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = customer.AccountStatus })
+  @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_DeleteGuard.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["title"] = "Delete customer " + customer.FullName + "?", ["code"] = customer.Code, ["table"] = "customers", ["uses"] = uses, ["deactivate"] = new Dictionary<string, object?> { ["title"] = "Suspend the account", ["text"] = "The record is kept for bookings, invoices and reviews, but " + customer.FirstName + " can no longer sign in or book.", ["action"] = route("admin.customers.suspend", customer), ["button"] = "Suspend account", ["icon"] = "bi-pause-circle", ["done"] = customer.AccountStatus != "Active" }, ["confirm-label"] = "Type the email address to confirm", ["confirm-value"] = customer.Email, ["delete-action"] = route("admin.customers.destroy", customer), ["delete-note"] = "Available only once no booking, review, message or announcement references this customer.", ["summary"] = __slot1 }))
+}

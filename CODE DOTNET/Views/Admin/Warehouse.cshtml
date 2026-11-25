@@ -1,0 +1,56 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic byStatus = ViewData["byStatus"];
+    dynamic requests = ViewData["requests"];
+    dynamic warehouses = ViewData["warehouses"];
+}
+
+
+
+@{ ViewData["title"] = "Warehouse"; }
+@{ ViewData["search_placeholder"] = "Search storage by booking, customer or bay"; }
+@{ ViewData["search_action"] = route("admin.warehouse"); }
+
+@{
+dynamic total = (int)Sum(byStatus);
+dynamic capacity = Sum(warehouses,  (Func<dynamic, dynamic>)((w) => (double)w.TotalCapacityM3));
+dynamic used = Sum(warehouses,  (Func<dynamic, dynamic>)((w) => (double)w.UsedCapacityM3));
+}
+
+@section Content {
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>Warehouse</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">Warehouses &amp; Storage</h1>
+               <p class="h-sub">@(Count(warehouses)) @(Plural("warehouse", Count(warehouses))) &#183; @(Num(used)) of @(Num(capacity)) m&#179; in use</p></div>
+        </div>
+        <div class="row g-4 mb-4">
+          @foreach (var warehouse in warehouses) {<text>
+          <div class="col-6">
+            <div class="card-tl p-4 h-100">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-buildings"></i></div>
+                <div><h2 class="h-card">@(warehouse.WarehouseName)</h2>
+                     <p class="kv mb-0">@(warehouse.Address), @(warehouse.City)</p></div></div>
+              <div class="d-flex justify-content-between mb-2"><span class="kv"><b>Occupancy</b></span><span class="kv"><b>@(warehouse.OccupancyPercent)%</b></span></div>
+              <div class="bar-track"><div class="bar-fill" style="width:@(warehouse.OccupancyPercent)%;background:var(@(warehouse.OccupancyPercent >= 90 ? "--dg" : (warehouse.OccupancyPercent >= 75 ? "--wn" : "--p")))"></div></div>
+              <div class="hint mb-3">@(Num(warehouse.UsedCapacityM3)) of @(Num(warehouse.TotalCapacityM3)) m&#179; used &#183; @(Num(warehouse.TotalCapacityM3 - warehouse.UsedCapacityM3)) m&#179; free</div>
+              <div class="row g-2">
+                <div class="col-4"><div class="tile"><div class="k">Keeper</div><div class="v" style="font-size:15px">@(warehouse.Keeper?.FullName ?? "-")</div></div></div>
+                <div class="col-4"><div class="tile"><div class="k">Opening hours</div><div class="v" style="font-size:15px">@(warehouse.OpeningHours)</div></div></div>
+                <div class="col-4"><div class="tile"><div class="k">Active requests</div><div class="v">@(warehouse.ActiveCount)</div></div></div>
+              </div>
+            </div>
+          </div>
+          </text>}
+        </div>
+        @await Html.PartialAsync("~/Views/Admin/Crud/Partials/Filters.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["chips"] = new Dictionary<string, object?> { ["param"] = "status", ["all"] = new object[] { "All storage", total }, ["items"] = All(Map(Collect(TruckLink.Models.StorageRequest.STATUSES),  (Func<dynamic, dynamic>)((s) => new object[] { s, s, (int)(At(byStatus, s) ?? 0), null }))) }, ["menus"] = new Dictionary<string, object?> { ["0"] = new Dictionary<string, object?> { ["param"] = "warehouse", ["icon"] = "bi-buildings", ["options"] = new Dictionary<string, object?> { [""] = "Every warehouse" } + All(Pluck(warehouses, "warehouse_name", "warehouse_id")) } } }))
+        <div class="card-tl" style="overflow:hidden">
+          <table class="tbl">
+            <thead><tr><th>Booking</th><th>Customer</th><th>Warehouse</th><th>Bay</th><th>Stored from</th><th>Free until</th><th>Planned release</th><th>Fee</th><th>Status</th></tr></thead>
+            <tbody>@if (!IsEmpty(requests)) {<text>
+@foreach (var storage in requests) {<text><tr><td class="mono-d" style="font-weight:600;white-space:nowrap"><a class="text-reset text-decoration-none" href="@(route("admin.bookings.show", storage.Booking))">@(storage.Booking.Reference)</a></td><td><div class="d-flex align-items-center gap-2">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = storage.Booking.Customer.FirstName, ["last"] = storage.Booking.Customer.LastName, ["sm"] = true })@(storage.Booking.Customer.FullName)</div></td><td>@(storage.Warehouse.WarehouseName)</td><td class="mono-d" style="white-space:nowrap">@(storage.StorageLocation)</td><td class="kv">@(Format(storage.StartDate, "d M Y"))</td><td>@(Format(storage.FreePeriodEndDate, "d M Y"))</td><td class="kv">@(Format(storage.EndDate, "d M Y") ?? "-")@if (Truthy(storage.ExtensionType)) {<text><div>@(storage.ExtensionUnits) &#215; @(Strtolower(storage.ExtensionType))</div></text>}</td><td class="mono-d">@(Sar(storage.StorageFee)) SAR</td><td>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = storage.StorageStatus })</td></tr></text>}
+</text>} else {<text><tr><td colspan="9" class="kv">No storage requests match these filters.</td></tr></text>}</tbody>
+          </table>
+          @await Html.PartialAsync("~/Views/Shared/_Pager.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["paginator"] = requests, ["label"] = Plural("storage request", Total(requests)) }))
+        </div>
+}

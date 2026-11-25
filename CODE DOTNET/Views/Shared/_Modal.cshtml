@@ -1,0 +1,55 @@
+
+@{
+    dynamic id = ViewData["id"];
+    dynamic width = ViewData["width"] ?? null;
+    dynamic wide = ViewData["wide"] ?? false;
+    dynamic open = ViewData["open"] ?? false;
+    dynamic label = ViewData["label"] ?? null;
+    dynamic padding = ViewData["padding"] ?? null;
+    dynamic slot = ViewData["slot"]; var attributes = new AttributeBag(ViewData);
+}
+
+
+
+
+
+
+
+
+<div class="scrim" id="@(id)" data-modal role="dialog" aria-modal="true" @Html.Raw((Truthy(label) ? $" aria-labelledby=\"{label}\" " : "")) @Html.Raw((!(Truthy(open)) ? " hidden " : ""))
+     style="position:fixed;inset:0;z-index:1050;overflow-y:auto@(padding ? ";padding:" + padding + "px" : "")">
+  <div @(Class(attributes, new Dictionary<string, object?> { ["0"] = "modal-tl", ["m-wide"] = wide })) @Html.Raw((Truthy(width) ? $" style=\"width:{width}px\" " : ""))>
+    @(slot)
+  </div>
+</div>
+
+
+@section Scripts {
+<script>
+  
+  (function () {
+    function lock() { document.body.classList.toggle('overflow-hidden', !!document.querySelector('[data-modal]:not([hidden])')); }
+    function open(modal) {
+      modal.hidden = false;
+      lock();
+      var first = modal.querySelector('[autofocus], input:not([type=hidden]):not([disabled]), select, textarea, button:not([data-modal-close])');
+      if (first) first.focus();
+    }
+    function close(modal) { if (modal) { modal.hidden = true; lock(); } }
+    document.addEventListener('click', function (e) {
+      var opener = e.target.closest('[data-modal-open]');
+      if (opener) { e.preventDefault(); open(document.getElementById(opener.dataset.modalOpen)); return; }
+      var closer = e.target.closest('[data-modal-close]');
+      if (closer) { close(closer.closest('[data-modal]')); return; }
+      if (e.target.matches('[data-modal]')) close(e.target);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { document.querySelectorAll('[data-modal]:not([hidden])').forEach(close); return; }
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('i[data-modal-close], i[data-modal-open]')) { e.preventDefault(); e.target.click(); }
+    });
+    
+    document.querySelectorAll('[data-modal]:not([hidden])').forEach(open);
+  })();
+</script>
+}
+

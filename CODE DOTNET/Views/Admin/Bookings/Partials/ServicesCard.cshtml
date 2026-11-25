@@ -1,0 +1,31 @@
+
+@{
+    dynamic extension = ViewData["extension"];
+    dynamic hasStorage = ViewData["hasStorage"];
+    dynamic lines = ViewData["lines"];
+    dynamic quote = ViewData["quote"];
+    dynamic span = ViewData["span"];
+    dynamic storageEnd = ViewData["storageEnd"];
+    dynamic storageStart = ViewData["storageStart"];
+    dynamic type = ViewData["type"];
+}
+
+            <div class="card-tl" style="padding:24px">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-tags"></i></div><div><h2 class="h-card">Services requested</h2><p class="kv mb-0">@(Count(lines) - (extension ? 1 : 0)) @(Plural("service", Count(lines) - (extension ? 1 : 0)))@(hasStorage ? " · includes Premium Storage" : "")</p></div></div>
+              <table class="tbl">
+                <tbody>
+                  @foreach (var line in lines) {<text>
+                  @{
+dynamic service = line.Service;
+}
+                  @if (service.ServiceType == "Transport") {<text>
+                  <tr><td style="padding-left:0"><b>@(service.ServiceName) - @(type)</b><div class="kv">Transport · @(service.PricingUnit)</div></td><td style="text-align:right;padding-right:0;font-weight:700">@(Sar(line.Subtotal)) SAR</td></tr>
+                  </text>} else if (service.ServiceType == "Value-Added") {<text>
+                  <tr><td style="padding-left:0"><b>@(service.ServiceName)</b> <span class="kv">× @(line.Quantity)</span><div class="kv">Value-added · @(service.PricingUnit)</div></td><td style="text-align:right;padding-right:0;font-weight:700">@(Sar(line.Subtotal)) SAR</td></tr>
+                  </text>} else if (service.PricingUnit == "first 7 days") {<text>
+                  <tr><td style="padding-left:0"><b>Premium Storage</b> <span class="pill p-ok ms-2" style="font-size:11px">7 days free</span><div class="kv">Storage · @(storageEnd ? span(storageStart, storageEnd) : Format(storageStart, "d M"))@if (quote && At(quote, "extension_type")) {<text> · @(At(quote, "billable_days")) billable @(Plural("day", At(quote, "billable_days"))) × @(Sar(At(quote, "unit_price"))) SAR </text>} else {<text> · within the free week </text>}</div></td><td style="text-align:right;padding-right:0;font-weight:700">@if (Truthy(extension)) {<text>@(Sar(extension.Subtotal)) SAR </text>} else {<text><span style="color:var(--ok)">Free</span></text>}</td></tr>
+                  </text>}
+                  </text>}
+                </tbody>
+              </table>
+            </div>

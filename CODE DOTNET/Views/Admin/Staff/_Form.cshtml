@@ -1,0 +1,73 @@
+
+@{
+    dynamic editing = ViewData["editing"];
+    dynamic member = ViewData["member"];
+}
+
+@{
+dynamic statusIcons = TruckLink.Models.Staff.STATUS_ICONS;
+dynamic title = old("job_title", member.JobTitle);
+}
+            @await Html.PartialAsync("~/Views/Admin/Crud/Partials/AccountCards.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["record"] = member, ["editing"] = editing, ["who"] = "staff member" }))
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-briefcase"></i></div>
+                <div><h2 class="h-card">Role &amp; shift</h2>
+                     <p class="kv mb-0">Drivers and movers are offered for a booking only while their shift covers its pickup time</p></div></div>
+              <div class="row g-3">
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  @await Html.PartialAsync("~/Views/Shared/_Sel.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["name"] = "job_title", ["value"] = title, ["placeholder"] = "Select a job title", ["invalid"] = errors.Has("job_title"), ["options"] = All(MapWithKeys(Collect(TruckLink.Models.Staff.TITLES),  (Func<dynamic, dynamic>)((t) => new Dictionary<string, object?> { [t] = new Dictionary<string, object?> { ["label"] = t, ["icon"] = At(TruckLink.Models.Staff.TITLE_ICONS, t) } }))) }))
+                @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "job_title", ["label"] = "Job title", ["required"] = true, ["track"] = editing, ["original"] = member.JobTitle, ["icon"] = "bi-briefcase", ["slot"] = __slot1 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <input class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("hire_date") })" id="hire_date" name="hire_date" type="date" max="@(ToDateString(today()))" value="@(old("hire_date", ToDateString(member.HireDate)))" required>
+                @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "hire_date", ["label"] = "Hire date", ["required"] = true, ["track"] = editing, ["original"] = ToDateString(member.HireDate), ["icon"] = "bi-calendar", ["slot"] = __slot2 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <input class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("shift_start") })" id="shift_start" name="shift_start" type="time" value="@(old("shift_start", member.ShiftStartLabel))">
+                @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "shift_start", ["label"] = "Shift start", ["track"] = editing, ["original"] = member.ShiftStartLabel, ["icon"] = "bi-clock", ["slot"] = __slot3 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <input class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("shift_end") })" id="shift_end" name="shift_end" type="time" value="@(old("shift_end", member.ShiftEndLabel))" min="@(old("shift_start", member.ShiftStartLabel))">
+                @{ var __slot4 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "shift_end", ["label"] = "Shift end", ["track"] = editing, ["original"] = member.ShiftEndLabel, ["icon"] = "bi-clock-history", ["slot"] = __slot4 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <input class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("license_number") })" id="license_number" name="license_number" value="@(old("license_number", member.LicenseNumber))" maxlength="30" style="text-transform:uppercase" autocomplete="off" @(title == "Driver" ? "required" : "") @(title != "Driver" ? "disabled" : "")>
+                @{ var __slot5 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "license_number", ["label"] = "Licence number", ["required"] = true, ["track"] = editing, ["original"] = member.LicenseNumber, ["format"] = "upper", ["icon"] = "bi-person-badge", ["hint"] = "Driving licence - required for drivers", ["data-show-for"] = "Driver", ["hidden"] = title != "Driver", ["slot"] = __slot5 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  @await Html.PartialAsync("~/Views/Shared/_Sel.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["name"] = "specialty", ["value"] = old("specialty", member.Specialty), ["options"] = new Dictionary<string, object?> { [""] = new Dictionary<string, object?> { ["label"] = "None" } } + All(MapWithKeys(Collect(TruckLink.Models.Staff.SPECIALTIES),  (Func<dynamic, dynamic>)((s) => new Dictionary<string, object?> { [s] = new Dictionary<string, object?> { ["label"] = Ucfirst(s) } }))) }))
+                @{ var __slot6 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-6", ["name"] = "specialty", ["label"] = "Specialty", ["track"] = editing, ["original"] = member.Specialty, ["icon"] = "bi-tools", ["display"] = new Dictionary<string, object?> { [""] = "None" } + ArrayCombine(TruckLink.Models.Staff.SPECIALTIES, ArrayMap("ucfirst", TruckLink.Models.Staff.SPECIALTIES)), ["hint"] = "Movers with a specialty are proposed first when a booking includes it", ["data-show-for"] = "Mover", ["hidden"] = title != "Mover", ["slot"] = __slot6 }))
+              </div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-toggle-on"></i></div>
+                <div><h2 class="h-card">Availability</h2>
+                     <p class="kv mb-0">Only <b>Active</b> staff can sign in and be assigned to a booking</p></div></div>
+              <div class="row g-3">
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  @await Html.PartialAsync("~/Views/Shared/_Sel.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["name"] = "staff_status", ["value"] = old("staff_status", member.StaffStatus), ["invalid"] = errors.Has("staff_status"), ["options"] = All(MapWithKeys(Collect(statusIcons),  (Func<dynamic, dynamic, dynamic>)((i, s) => new Dictionary<string, object?> { [s] = new Dictionary<string, object?> { ["label"] = s, ["icon"] = At(i, 0), ["colour"] = At(i, 1), ["boxIcon"] = s != "Active" } }))) }))
+                @{ var __slot7 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-12", ["name"] = "staff_status", ["label"] = "Status", ["required"] = true, ["track"] = editing, ["original"] = member.StaffStatus, ["icon"] = "bi-toggle-on", ["slot"] = __slot7 }))
+              </div>
+            </div>
+
+@section Scripts {
+<script>
+  
+  (function () {
+    var title = document.querySelector('[name=job_title]');
+    function sync() {
+      document.querySelectorAll('[data-show-for]').forEach(function (box) {
+        var on = box.dataset.showFor === title.value;
+        box.hidden = !on;
+        box.querySelectorAll('input:not([type=hidden])').forEach(function (i) { i.disabled = !on; if (i.name === 'license_number') i.required = on; });
+        box.querySelectorAll('[data-sel-input]').forEach(function (i) { i.disabled = !on; });
+      });
+    }
+    title.addEventListener('change', sync);
+    sync();
+    
+    var start = document.getElementById('shift_start'), end = document.getElementById('shift_end');
+    function shift() { end.min = start.value; end.setCustomValidity(start.value && end.value && end.value <= start.value ? 'The shift must end after it starts.' : ''); }
+    start.addEventListener('input', shift);
+    end.addEventListener('input', shift);
+    shift();
+  })();
+</script>
+}

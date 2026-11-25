@@ -1,0 +1,130 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic chart = ViewData["chart"];
+    dynamic endingSoon = ViewData["endingSoon"];
+    dynamic fleet = ViewData["fleet"];
+    dynamic kpis = ViewData["kpis"];
+    dynamic pending = ViewData["pending"];
+    dynamic today = ViewData["today"];
+    dynamic warehouses = ViewData["warehouses"];
+}
+
+
+
+@{ ViewData["title"] = "Dashboard"; }
+@{ ViewData["search_placeholder"] = "Search bookings by reference, customer, city or plate"; }
+@{ ViewData["search_action"] = route("admin.bookings.index"); }
+
+@section Content {
+        <div class="crumb"><b>Dashboard</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">Good @(now().Hour < 12 ? "morning" : (now().Hour < 17 ? "afternoon" : "evening")), @(User(auth("admin")).FirstName)</h1>
+               <p class="h-sub">@(Format(now(), "l, d M Y")) &#183; @(today) accepted @(Plural("pickup", today)) today</p></div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-out b-md" href="@(route("admin.reports.index"))"><i class="bi bi-bar-chart"></i> Reports</a>
+            <a class="btn btn-tl b-md" href="@(route("admin.bookings.index"))"><i class="bi bi-clipboard-check"></i> Review requests</a>
+          </div>
+        </div>
+        <div class="row g-3 mb-4">
+          <div class="col-3">@await Html.PartialAsync("~/Views/Shared/_Kpi.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icon"] = "bi-hourglass-split", ["colour"] = "--wn", ["value"] = At(kpis, "pending"), ["label"] = "Requests awaiting review" }))</div>
+          <div class="col-3">@await Html.PartialAsync("~/Views/Shared/_Kpi.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icon"] = "bi-geo-alt", ["colour"] = "--in", ["value"] = At(kpis, "road"), ["label"] = "Bookings on the road" }))</div>
+          <div class="col-3">@await Html.PartialAsync("~/Views/Shared/_Kpi.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icon"] = "bi-truck", ["colour"] = "--ok", ["value"] = At(kpis, "available") + " / " + At(kpis, "vehicles"), ["label"] = "Vehicles available" }))</div>
+          <div class="col-3">@await Html.PartialAsync("~/Views/Shared/_Kpi.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icon"] = "bi-cash-stack", ["value"] = Sar(At(kpis, "revenue")) + " SAR", ["label"] = "Paid this month" }))</div>
+        </div>
+        <div class="row g-4">
+          <div class="col-8">
+            <div class="card-tl" style="overflow:hidden">
+              <div class="p-4 pb-3 d-flex justify-content-between align-items-center">
+                <div class="sec-head mb-0"><div class="sec-ic"><i class="bi bi-hourglass-split"></i></div>
+                  <div><h2 class="h-card">Latest requests</h2><p class="kv mb-0">Oldest first - the order they should be reviewed in</p></div></div>
+                <a class="btn btn-out b-sm" href="@(route("admin.bookings.index"))">Open queue</a>
+              </div>
+              <table class="tbl">
+                <thead><tr><th>Booking</th><th>Customer</th><th>Route</th><th>Pickup</th><th>Total</th><th></th></tr></thead>
+                <tbody>
+                  @if (!IsEmpty(pending)) {<text>
+@foreach (var (booking, loop) in WithLoop((object?)(pending))) {<text>
+                  <tr><td><div class="mono-d" style="font-weight:600;white-space:nowrap">@(booking.Reference)</div><div class="kv">@(Ago(booking.CreatedAt))</div></td><td><div class="d-flex align-items-center gap-2">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = booking.Customer.FirstName, ["last"] = booking.Customer.LastName, ["sm"] = true })@(booking.Customer.FullName)</div></td><td>@(booking.PickupCity) → @(booking.DropoffCity)</td><td>@(Format(booking.PickupDatetime, "d M, H:i"))</td><td style="font-weight:700">@(Sar(booking.TotalAmount)) SAR</td><td style="text-align:right"><a class="@Cls(new Dictionary<string, object?> { ["0"] = "btn b-sm", ["btn-tl"] = loop.First, ["btn-out"] = !loop.First })" href="@(route("admin.bookings.show", booking))">Review</a></td></tr>
+                  </text>}
+</text>} else {<text>
+                  <tr><td colspan="6" class="kv">No requests waiting - the queue is clear.</td></tr>
+                  </text>}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div class="sec-head mb-0"><div class="sec-ic"><i class="bi bi-bar-chart"></i></div>
+                  <div><h2 class="h-card">Bookings &amp; revenue</h2><p class="kv mb-0">The last 6 months · bookings by pickup month, payments by the day they were made</p></div></div>
+                <a class="btn btn-out b-sm" href="@(route("admin.reports.show", "revenue"))">Revenue report</a>
+              </div>
+              <div style="position:relative;height:300px"><canvas id="dashboard-chart" aria-label="Bookings and revenue per month" role="img"></canvas></div>
+            </div>
+          </div>
+
+          <div class="col-4">
+            <div class="card-tl p-4 summary">
+              <div class="cap mb-3">Warehouses</div>
+              @foreach (var (warehouse, loop) in WithLoop((object?)(warehouses))) {<text>
+              <div class="@Cls(new Dictionary<string, object?> { ["mb-3"] = !loop.Last })"><div class="d-flex justify-content-between mb-2"><span class="kv"><b>@(warehouse.WarehouseName)</b></span><span class="kv"><b>@(warehouse.OccupancyPercent)%</b></span></div>
+                <div class="bar-track"><div class="bar-fill" style="width:@(warehouse.OccupancyPercent)%;background:var(--p)"></div></div>
+                <div class="hint">@(Num(warehouse.UsedCapacityM3)) of @(Num(warehouse.TotalCapacityM3)) m&#179; used</div></div>
+              </text>}
+              <a class="btn btn-out b-md w-100 mt-3" href="@(route("admin.warehouse"))">Open warehouse</a>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="cap mb-3">Fleet</div>
+              <div class="d-flex flex-column gap-2">
+                @foreach (var (status, __v1) in Pairs((object?)(TruckLink.Models.Vehicle.STATUS_ICONS))) {
+dynamic icon = At(__v1, 0);
+dynamic colour = At(__v1, 1);<text>
+                <a class="pick-dis d-flex align-items-center gap-2 text-reset text-decoration-none" href="@(route("admin.vehicles.index", new Dictionary<string, object?> { ["status"] = status }))">
+                  <i class="bi @(icon)" style="color:var(@(colour));font-size:16px"></i>
+                  <span style="font-size:14px">@(status)</span><span class="kv ms-auto"><b>@((int)(At(fleet, status) ?? 0))</b></span></a>
+                </text>}
+              </div>
+            </div>
+
+            @if (Truthy(endingSoon)) {<text>
+            <div class="al a-wn mt-4"><i class="bi bi-exclamation-triangle-fill" style="font-size:18px"></i>
+              <div><b>@(endingSoon) free storage @(Plural("period", endingSoon)) ending</b><div style="margin-top:6px">within the next two days - the customers get their reminder automatically.</div></div></div>
+            </text>}
+          </div>
+        </div>
+}
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  
+  (function () {
+    var css = getComputedStyle(document.documentElement), token = function (n) { return css.getPropertyValue(n).trim(); };
+    var data = @(JsFrom(chart));
+    Chart.defaults.font.family = 'Inter, sans-serif';
+    Chart.defaults.color = token('--mu');
+    new Chart(document.getElementById('dashboard-chart'), {
+      data: {
+        labels: data.labels,
+        datasets: [
+          { type: 'bar', label: 'Bookings', data: data.bookings, backgroundColor: token('--p'), borderRadius: 6, stack: 'b', yAxisID: 'y' },
+          { type: 'bar', label: 'Rejected / cancelled', data: data.refused, backgroundColor: token('--line2'), borderRadius: 6, stack: 'b', yAxisID: 'y' },
+          { type: 'line', label: 'Paid (SAR)', data: data.revenue, borderColor: token('--ok'), backgroundColor: token('--ok'), tension: .35, pointRadius: 4, yAxisID: 'y1' }
+        ]
+      },
+      options: {
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } },
+        scales: {
+          x: { stacked: true, grid: { display: false } },
+          y: { stacked: true, beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: 'Bookings' }, grid: { color: token('--line') } },
+          y1: { position: 'right', beginAtZero: true, grid: { display: false }, title: { display: true, text: 'SAR' } }
+        }
+      }
+    });
+  })();
+</script>
+}

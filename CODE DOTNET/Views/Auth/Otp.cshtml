@@ -1,0 +1,47 @@
+
+@{ Layout = "~/Views/Shared/_AuthLayout.cshtml"; }
+@{
+    dynamic phone = ViewData["phone"];
+    dynamic registering = ViewData["registering"];
+}
+
+
+
+
+@{ ViewData["title"] = "Enter your code"; }
+
+@if (Truthy(registering)) {<text>
+@{ ViewData["panel_title"] = "Your move starts here."; }
+@{ ViewData["panel_text"] = "Create an account, upload a few photos of your furniture, and we will tell you exactly which truck you need and what it costs."; }
+</text>} else {<text>
+@{ ViewData["panel_title"] = "Welcome back."; }
+@{ ViewData["panel_text"] = "Track a move in progress, extend your storage, or start a new booking in a few minutes."; }
+</text>}
+
+@section Content {
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:56px">
+      <div style="width:404px">
+        <h2 class="ff" style="font-size:30px;font-weight:800;color:var(--pd);margin:0 0 6px">Enter your code</h2>
+        <p class="kv mb-4">We sent a 6-digit code to <b style="color:var(--p)">@(phone)</b></p>
+        @if (Truthy(session("status"))) {<text>
+        <div class="al a-ok mb-3" style="font-size:13px;padding:13px 15px" role="status"><i class="bi bi-check-circle-fill" style="font-size:16px"></i><div>@(session("status"))</div></div>
+        </text>}
+        <form method="POST" action="@(route("otp"))">
+          @Html.AntiForgeryToken()
+          <div class="mb-4">@{ PushWriter(new System.IO.StringWriter()); }
+            <div style="position:relative"><i class="bi bi-shield-lock" style="position:absolute;left:15px;top:14px;color:var(--s)"></i>
+            <input id="code" name="code" type="text" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("code") })" style="padding-left:43px" placeholder="6-digit code" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" pattern="[0-9]{6}" title="The 6 digits in the message" required autofocus></div>
+          @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "code", ["label"] = "One-time password", ["slot"] = __slot1 })</div>
+          <button type="submit" class="btn btn-tl b-xl w-100">@(registering ? "Verify and create account" : "Verify and sign in") <i class="bi bi-arrow-right"></i></button>
+        </form>
+        <div class="d-flex align-items-center gap-3 my-4"><div style="flex:1;height:1px;background:var(--line)"></div><span class="kv">didn't get it?</span><div style="flex:1;height:1px;background:var(--line)"></div></div>
+        <div class="row g-2">
+          <div class="col-6"><form method="POST" action="@(route("otp.resend"))">@Html.AntiForgeryToken()<button type="submit" class="btn btn-out b-lg w-100"><i class="bi bi-arrow-clockwise"></i> Resend code</button></form></div>
+          <div class="col-6"><a class="btn btn-out b-lg w-100" href="@(route(registering ? "register" : "login"))"><i class="bi bi-arrow-left"></i> Back</a></div>
+        </div>
+        <div class="al a-in mt-4" style="font-size:13px;padding:13px 15px"><i class="bi bi-shield-lock-fill" style="font-size:16px"></i><div>The code expires in 5 minutes. TruckLink will never ask you to share it.</div></div>
+      </div>
+    </div>
+}
+
+@await Html.PartialAsync("~/Views/Auth/Partials/SimulatedSms.cshtml")

@@ -1,0 +1,58 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic page = ViewData["page"];
+}
+
+
+
+
+
+
+
+
+
+@{ ViewData["title"] = At(page, "title"); }
+@{ ViewData["search_placeholder"] = At(At(page, "search"), 0); }
+@{ ViewData["search_action"] = At(At(page, "search"), 1); }
+
+@section Content {
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a>
+          @foreach (var __v7 in At(page, "crumbs")) {
+dynamic label = At(__v7, 0);
+dynamic url = At(__v7, 1);<text> <i class="bi bi-chevron-right" style="font-size:9px"></i>
+          <a href="@(url)" class="text-reset text-decoration-none">@(label)</a></text>} <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>@(At(page, "title"))</b></div>
+        @if (Truthy(session("status"))) {<text>
+        <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div>@(session("status"))</div></div>
+        </text>}
+        @if (session("saved.key") == At(page, "savedKey")) {<text>
+        <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill" style="font-size:19px"></i>
+          <div><b>@(At(page, "noun")) saved.</b> Record <span class="mono-d">@(At(page, "code"))</span> was @(session("saved.created") ? "created" : "updated").
+            @(session("saved.note"))</div>
+          <span class="pill p-ok ms-auto">@(session("saved.created") ? "Created" : "Updated") just now</span></div>
+        </text>}
+        <div class="d-flex justify-content-between align-items-end mb-4">
+          <div class="d-flex align-items-center gap-3">
+            @RenderSection("HeadIcon", required: false)
+            <div><h1 class="h-page">@(At(page, "title"))</h1>
+                 <p class="h-sub">@RenderSection("HeadSub", required: false)</p></div>
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            @RenderSection("HeadPill", required: false)
+            @if (Truthy(At(page, "edit"))) {<text><a class="btn btn-out b-md" href="@(At(page, "edit"))"><i class="bi bi-pencil"></i> Edit</a></text>}
+            @if (Truthy(At(page, "deletable"))) {<text><a class="btn btn-out-dg b-md" href="@(Current(url()))?delete=1" data-modal-open="delete-record"><i class="bi bi-trash3"></i> Delete</a></text>}
+          </div>
+        </div>
+        <div class="row g-4">
+          <div class="col-8">
+            @RenderSection("Main", required: false)
+          </div>
+          <div class="col-4">
+            @RenderSection("Side", required: false)
+          </div>
+        </div>
+}
+
+@section Modals {
+@RenderSection("Modals", required: false)
+}

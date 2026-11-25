@@ -1,0 +1,99 @@
+
+@{
+    dynamic booking = ViewData["booking"];
+    dynamic emptyText = ViewData["emptyText"];
+    dynamic me = ViewData["me"];
+    dynamic messages = ViewData["messages"];
+    dynamic open = ViewData["open"];
+    dynamic route = ViewData["route"];
+    dynamic sendRoute = ViewData["sendRoute"];
+    dynamic threads = ViewData["threads"];
+}
+
+
+
+
+
+@{
+dynamic other = me == "Customer" ? "driver" : "customer";
+}
+<div class="row g-3">
+  <div class="col-4">
+    <div class="card-tl" style="overflow:hidden">
+      <div class="p-3 px-4" style="border-bottom:1px solid var(--line)"><div class="sum-cap">Conversations</div></div>
+      @if (!IsEmpty(threads)) {<text>
+@foreach (var t in threads) {<text>
+      @{
+dynamic person = me == "Customer" ? At(t, "booking").Driver : At(t, "booking").Customer;
+dynamic on = booking && booking.BookingId == At(t, "booking").BookingId;
+}
+      <a class="d-flex align-items-start gap-3 p-3 px-4 text-reset text-decoration-none" href="@(route(route, At(t, "booking")))"
+         style="border-bottom:1px solid var(--line);@(on ? "background:var(--tint)" : "")">
+        @await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = person?.FirstName, ["last"] = person?.LastName, ["sm"] = true })
+        <div style="flex:1;min-width:0">
+          <div class="d-flex justify-content-between gap-2"><b style="font-size:14px">@(person?.FullName)</b><span class="kv">@(At(t, "last") ? Ago(At(t, "last").SentAt) : "")</span></div>
+          <div class="kv mono-d">@(At(t, "booking").Reference)</div>
+          <div class="kv text-truncate">@(At(t, "last") ? (At(t, "last").SenderType == me ? "You: " : "") + At(t, "last").MessageText : "No messages yet")</div>
+        </div>
+        @if (Truthy(At(t, "unread"))) {<text><span class="pill p-pend" style="font-size:11px;padding:3px 9px">@(At(t, "unread"))</span></text>}
+      </a>
+      </text>}
+</text>} else {<text>
+      <div class="p-4 kv">@(emptyText)</div>
+      </text>}
+    </div>
+  </div>
+  <div class="col-8">
+    <div class="card-tl d-flex flex-column" style="min-height:540px">
+      @if (Truthy(booking)) {<text>
+      @{
+person = me == "Customer" ? booking.Driver : booking.Customer;
+}
+      <div class="d-flex align-items-center gap-3 p-3 px-4" style="border-bottom:1px solid var(--line)">
+        @await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = person?.FirstName, ["last"] = person?.LastName })
+        <div style="flex:1"><div style="font-weight:700">@(person?.FullName)</div>
+          <div class="kv">@(me == "Customer" ? "Your driver" : "Customer") · <span class="mono-d">@(booking.Reference)</span> · @(booking.PickupCity) → @(booking.DropoffCity) · @(Format(booking.PickupDatetime, "d M, H:i"))</div></div>
+        @await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = booking.BookingStatus })
+      </div>
+      <div class="p-4 d-flex flex-column gap-2" style="flex:1;overflow-y:auto;max-height:520px" data-chat-scroll>
+        @if (!IsEmpty(messages)) {<text>
+@foreach (var (message, loop) in WithLoop((object?)(messages))) {<text>
+        @{
+dynamic mine = message.SenderType == me;
+}
+        @if (loop.First || !IsSameDay(message.SentAt, At(messages, loop.Index - 1).SentAt)) {<text>
+        <div class="kv text-center my-2">@(IsToday(message.SentAt) ? "Today" : Format(message.SentAt, "d M Y"))</div>
+        </text>}
+        <div class="@Cls(new Dictionary<string, object?> { ["0"] = "d-flex", ["justify-content-end"] = mine })">
+          <div class="@Cls(new Dictionary<string, object?> { ["0"] = "al", ["a-in"] = !mine })" style="max-width:72%;display:block;@(mine ? "background:var(--p);color:#fff" : "")">
+            <div style="white-space:pre-line">@(message.MessageText)</div>
+            <div style="font-size:11px;margin-top:4px;opacity:.75;text-align:right">@(Format(message.SentAt, "H:i"))@if (Truthy(mine)) {<text> · @(message.IsRead ? "Read" : "Sent")</text>}</div>
+          </div>
+        </div>
+        </text>}
+</text>} else {<text>
+        <div class="kv text-center my-auto">No messages yet - say hello to your @(other).</div>
+        </text>}
+      </div>
+      @if (Truthy(open)) {<text>
+      <form method="POST" action="@(route(sendRoute, booking))" class="d-flex gap-2 p-3 px-4" style="border-top:1px solid var(--line)">
+        @Html.AntiForgeryToken()
+        <div style="flex:1"><input class="fld @if (errors.Has("message_text")) { var message = errors.First("message_text"); fld-err }" name="message_text" maxlength="1000" required autocomplete="off" placeholder="Write a message…" aria-label="Message" autofocus>
+          @if (errors.Has("message_text")) { var message = errors.First("message_text");<text><div class="err"><i class="bi bi-exclamation-circle-fill"></i> @(message)</div></text>}</div>
+        <button type="submit" class="btn btn-tl b-ico" aria-label="Send" style="width:46px;height:46px"><i class="bi bi-send-fill"></i></button>
+      </form>
+      </text>} else {<text>
+      <div class="p-3 px-4 kv" style="border-top:1px solid var(--line)">This conversation is closed because the booking was @(Strtolower(booking.BookingStatus)).</div>
+      </text>}
+      </text>} else {<text>
+      <div class="m-auto text-center p-5"><div class="sec-ic mx-auto mb-3"><i class="bi bi-chat-dots"></i></div><div class="kv">@(emptyText)</div></div>
+      </text>}
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+<script>
+  (function () { var box = document.querySelector('[data-chat-scroll]'); if (box) box.scrollTop = box.scrollHeight; })();
+</script>
+}

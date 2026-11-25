@@ -1,0 +1,98 @@
+
+@{
+    dynamic booking = ViewData["booking"];
+    dynamic reached = ViewData["reached"];
+    dynamic status = ViewData["status"];
+    dynamic steps = ViewData["steps"];
+}
+
+
+
+
+@{
+dynamic storage = booking.StorageRequest;
+dynamic moving = InArray(status, new object[] { "Picked Up", "In Transit", "Out for Delivery" }, true);
+dynamic stopped = InArray(status, new object[] { "Rejected", "Cancelled" }, true);
+dynamic progress = At(new Dictionary<string, object?> { ["Pending"] = 0, ["Accepted"] = 4, ["Picked Up"] = 18, ["In Transit"] = storage ? 38 : 55, ["In Storage"] = 50, ["Out for Delivery"] = 80, ["Completed"] = 100, ["Rejected"] = 0, ["Cancelled"] = 0 }, status) ?? 0;
+dynamic icons = new Dictionary<string, object?> { ["Pending"] = "bi-send", ["Accepted"] = "bi-check2-circle", ["Picked Up"] = "bi-box-seam", ["In Transit"] = "bi-truck", ["In Storage"] = "bi-buildings", ["Out for Delivery"] = "bi-signpost-split", ["Completed"] = "bi-house-check", ["Rejected"] = "bi-x-lg", ["Cancelled"] = "bi-slash-circle" };
+dynamic headline = At(new Dictionary<string, object?> { ["Pending"] = "Waiting for approval", ["Accepted"] = "Booked and scheduled", ["Picked Up"] = "Your items are loaded", ["In Transit"] = "On the way", ["In Storage"] = "Safely in storage", ["Out for Delivery"] = "Out for delivery", ["Completed"] = "Delivered", ["Rejected"] = "Request not accepted", ["Cancelled"] = "Booking cancelled" }, status) ?? status;
+dynamic eta = booking.ExpectedDeliveryDatetime;
+}
+<div class="card-tl mb-3 trk" style="padding:24px" id="tracking" data-tracking @Html.Raw((Truthy(moving) ? " data-live=\"30\" " : ""))>
+  <div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+      <div class="sum-cap mb-1">Tracking</div>
+      <div class="trk-head">@(headline)</div>
+    </div>
+    @if (Truthy(moving)) {<text>
+    <span class="trk-live"><span class="trk-live-dot"></span> Live</span>
+    </text>}
+  </div>
+
+  
+  @if (!(Truthy(stopped))) {<text>
+  <div class="trk-route mb-4" style="--trk-progress: @(progress)%">
+    <div class="d-flex justify-content-between mb-2">
+      <div><div class="trk-city">@(booking.PickupCity)</div><div class="kv">@(Format(booking.PickupDatetime, "d M, H:i"))</div></div>
+      <div style="text-align:right"><div class="trk-city">@(booking.DropoffCity)</div><div class="kv">@if (status == "Completed") {<text>Delivered </text>} else if (Truthy(eta)) {<text>ETA @(Format(eta, "d M, H:i"))</text>}</div></div>
+    </div>
+    <div class="trk-track" role="progressbar" aria-valuenow="@(progress)" aria-valuemin="0" aria-valuemax="100" aria-label="Journey progress">
+      <div class="@Cls(new Dictionary<string, object?> { ["0"] = "trk-fill", ["trk-fill-moving"] = moving })"></div>
+      <span class="trk-pin trk-pin-start"></span>
+      @if (Truthy(storage)) {<text><span class="@Cls(new Dictionary<string, object?> { ["0"] = "trk-pin trk-pin-mid", ["trk-pin-done"] = progress >= 50 })" title="@(storage.Warehouse?.WarehouseName)"><i class="bi bi-buildings"></i></span></text>}
+      <span class="@Cls(new Dictionary<string, object?> { ["0"] = "trk-pin trk-pin-end", ["trk-pin-done"] = progress >= 100 })"></span>
+      <span class="@Cls(new Dictionary<string, object?> { ["0"] = "trk-truck", ["trk-truck-moving"] = moving })" aria-hidden="true"><i class="bi @(status == "Completed" ? "bi-check-lg" : (status == "In Storage" ? "bi-buildings" : "bi-truck"))"></i></span>
+    </div>
+  </div>
+  </text>}
+
+  
+  <ol class="trk-steps">
+    @foreach (var (i, __v16) in Pairs((object?)(steps))) {
+dynamic value = At(__v16, 0);
+dynamic title = At(__v16, 1);
+dynamic detail = At(__v16, 2);<text>
+    @{
+dynamic state = stopped && i == reached ? "stop" : (i < reached || (i == reached && status == "Completed") ? "done" : (i == reached ? "now" : "next"));
+}
+    <li class="trk-step trk-is-@(state)" style="--trk-i: @(i)">
+      <span class="trk-node"><i class="bi @(state == "done" ? "bi-check-lg" : (At(icons, value) ?? "bi-circle"))"></i></span>
+      <div class="trk-body">
+        <div class="trk-title">@(title)@if (state == "now") {<text> <span class="trk-now">Now</span></text>}</div>
+        @if (Truthy(detail)) {<text><div class="kv">@(detail)</div></text>}
+      </div>
+    </li>
+    </text>}
+  </ol>
+  @if (Truthy(moving)) {<text>
+  <div class="hint mt-3 mb-0"><i class="bi bi-arrow-repeat"></i> Updates automatically · last checked <span data-tracking-time>@(Format(now(), "H:i:s"))</span></div>
+  </text>}
+</div>
+
+
+@section Scripts {
+<script>
+  
+  
+  (function () {
+    function tick() {
+      var card = document.querySelector('[data-tracking][data-live]');
+      if (!card || document.hidden) return;
+      fetch(location.pathname, { headers: { 'X-Requested-With': 'fetch' }, credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.text() : null; })
+        .then(function (html) {
+          if (!html) return;
+          var fresh = new DOMParser().parseFromString(html, 'text/html').querySelector('[data-tracking]');
+          if (!fresh) return;
+          if (!fresh.hasAttribute('data-live')) { location.reload(); return; }
+          var head = card.querySelector('.trk-head').textContent, freshHead = fresh.querySelector('.trk-head').textContent;
+          if (head !== freshHead) { card.replaceWith(fresh); return; }        
+          card.querySelector('[data-tracking-time]').textContent = fresh.querySelector('[data-tracking-time]').textContent;
+        })
+        .catch(function () {});
+    }
+    setInterval(tick, 30000);
+  })();
+</script>
+}
+

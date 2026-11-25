@@ -1,0 +1,39 @@
+
+@{
+    dynamic issueVehicle = ViewData["issueVehicle"];
+}
+
+@{
+dynamic ie = errors.GetBag("issue");
+dynamic driver = User(auth("staff"));
+dynamic vehicles = Get(TruckLink.Models.Vehicle.Query().WhereHas("bookings",  (Func<dynamic, dynamic>)((b) => Where(b, "staff_id", driver.StaffId).WhereIn("booking_status", new object[] { "Accepted", "Picked Up", "In Transit", "In Storage", "Out for Delivery" }))).OrderBy("plate_number"));
+dynamic chosen = (int)old("vehicle_id", issueVehicle ?? First(vehicles)?.VehicleId);
+}
+@{ PushWriter(new System.IO.StringWriter()); }
+  <form method="POST" action="@(route("staff.vehicle-issue"))">
+    @Html.AntiForgeryToken()
+    <div class="m-head d-flex justify-content-between align-items-start">
+      <div class="d-flex gap-3"><div class="sec-ic" style="background:var(--dgb);color:var(--dg)"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div><h2 class="h-card" id="vehicle-issue-title">Report a vehicle issue</h2><p class="kv mb-0">The operations team sees it straight away</p></div></div>
+      <i class="bi bi-x-lg" data-modal-close role="button" tabindex="0" aria-label="Close" style="color:var(--mu);font-size:17px;cursor:pointer"></i>
+    </div>
+    <div class="m-body">
+      @if (Truthy(IsEmpty(vehicles))) {<text>
+      <div class="al a-in" style="font-size:13.5px"><i class="bi bi-info-circle-fill" style="font-size:16px"></i><div>You have no vehicle assigned right now. Call the operations team on @(config("trucklink.support_phone")) for anything urgent.</div></div>
+      </text>} else {<text>
+      <div class="mb-3">@{ PushWriter(new System.IO.StringWriter()); }
+        <div style="position:relative"><i class="bi bi-chevron-down" style="position:absolute;right:15px;top:15px;color:var(--s);font-size:12px;pointer-events:none"></i>
+        <select id="vehicle_id" name="vehicle_id" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = ie.Has("vehicle_id") })" style="appearance:none" required>
+          @foreach (var vehicle in vehicles) {<text><option value="@(vehicle.VehicleId)" @(chosen == vehicle.VehicleId ? "selected" : "")>@(vehicle.PlateNumber) · @(vehicle.VehicleType)</option></text>}
+        </select></div>
+      @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "vehicle_id", ["label"] = "Vehicle", ["bag"] = "issue", ["required"] = true, ["slot"] = __slot2 })</div>
+      <div class="mb-3">@{ PushWriter(new System.IO.StringWriter()); }
+        <textarea id="description" name="description" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = ie.Has("description") })" rows="4" required maxlength="500" placeholder="e.g. The tail lift stops halfway; brake warning light is on.">@(old("description"))</textarea>
+      @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "description", ["label"] = "What is wrong?", ["bag"] = "issue", ["required"] = true, ["hint"] = "500 characters at most.", ["slot"] = __slot3 })</div>
+      <label class="d-flex align-items-start gap-2 mb-3"><input class="form-check-input mt-1" type="checkbox" name="off_road" value="1" @(Truthy(old("off_road")) ? "checked" : "") style="width:17px;height:17px;flex-shrink:0"><span style="font-size:13.5px">The vehicle is not safe to drive - take it off the road (status Maintenance)</span></label>
+      <div class="al a-wn" style="font-size:13.5px"><i class="bi bi-exclamation-triangle-fill" style="font-size:16px"></i><div>Taking a vehicle off the road sends its upcoming accepted jobs back to the queue for another vehicle. Jobs already in progress are not changed.</div></div>
+      </text>}
+    </div>
+    <div class="m-foot justify-content-end gap-2"><button type="button" class="btn btn-out b-md" data-modal-close>Cancel</button>@if (Truthy(IsNotEmpty(vehicles))) {<text><button type="submit" class="btn btn-dg b-md"><i class="bi bi-send"></i> Send report</button></text>}</div>
+  </form>
+@{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_Modal.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["id"] = "vehicle-issue", ["width"] = "680", ["padding"] = "46", ["open"] = Any(ie) || Boolean(request(), "issue"), ["label"] = "vehicle-issue-title", ["slot"] = __slot1 }))

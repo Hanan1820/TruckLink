@@ -1,0 +1,84 @@
+
+@{ Layout = "~/Views/Admin/Crud/ShowPage.cshtml"; }
+@{
+    dynamic account = ViewData["account"];
+    dynamic blocked = ViewData["blocked"];
+    dynamic canManage = ViewData["canManage"];
+    dynamic recent = ViewData["recent"];
+    dynamic uses = ViewData["uses"];
+}
+
+@{
+dynamic page = new Dictionary<string, object?> { ["title"] = account.FullName, ["crumbs"] = new object[] { new object[] { "Admin accounts", route("admin.admins.index") } }, ["search"] = new object[] { "Search admins by name or email", route("admin.admins.index") }, ["edit"] = canManage ? route("admin.admins.edit", account) : null, ["deletable"] = canManage, ["savedKey"] = "admin:" + account.AdminId, ["noun"] = "Admin", ["code"] = account.Code };
+dynamic roleIcons = TruckLink.Controllers.Admin.AdminAccountController.ROLE_ICONS;
+}
+
+
+@section HeadIcon {
+            @await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = account.FirstName, ["last"] = account.LastName, ["style"] = "width:56px;height:56px;font-size:19px" })
+}
+@section HeadSub {@(account.AdminRole) &#183; <span class="mono-d">@(account.Code)</span> &#183; admin since @(Format(account.CreatedAt, "d M Y"))}
+@section HeadPill {
+            <span class="pill p-neu"><i class="bi @(At(At(roleIcons, account.AdminRole), 0))"></i> @(account.AdminRole)</span>
+}
+
+@section Main {
+            <div class="card-tl p-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-clipboard-data"></i></div>
+                <div><h2 class="h-card">Account</h2>
+                     <p class="kv mb-0">Stored attributes of the <b>admin</b> entity</p></div></div>
+              <div class="row g-3">
+                <div class="col-6"><div class="tile"><div class="k">Email</div><div class="v" style="font-size:16px">@(account.Email)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Phone</div><div class="v" style="font-size:16px">@(account.PhoneDisplay)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Record id</div><div class="v" style="font-family:ui-monospace,Menlo,monospace;font-size:16px">@(account.Code)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Vehicles</div><div class="v">@(account.VehiclesCount)</div><div class="u">registered</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Staff</div><div class="v">@(account.StaffCount)</div><div class="u">registered</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Catalogue</div><div class="v">@(account.ServicesCount + account.ItemCategoriesCount)</div><div class="u">services &amp; categories</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Reviews</div><div class="v">@(account.ModeratedReviewsCount)</div><div class="u">moderated</div></div></div>
+              </div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-megaphone"></i></div>
+                <div><h2 class="h-card">Recent announcements</h2>
+                     <p class="kv mb-0">The last announcements this admin sent</p></div></div>
+              <table class="tbl" style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+                <thead><tr><th>Sent</th><th>Title</th><th>To</th><th>Type</th></tr></thead>
+                <tbody>
+                  @if (!IsEmpty(recent)) {<text>
+@foreach (var notice in recent) {<text>
+                  <tr><td class="kv">@(Format(notice.SentAt, "d M Y, H:i"))</td><td style="font-weight:600">@(notice.Title)</td>
+                      <td>@(notice.Customer?.FullName ?? notice.Staff?.FullName ?? "-")</td><td><span class="pill p-neu">@(notice.AnnouncementType)</span></td></tr>
+                  </text>}
+</text>} else {<text>
+                  <tr><td colspan="4" class="kv">No announcements sent yet.</td></tr>
+                  </text>}
+                </tbody>
+              </table>
+            </div>
+}
+
+@section Side {
+            <div class="card-tl p-4 summary">
+              <div class="cap mb-3">Activity</div>
+              <div class="sum-row"><span>Announcements sent</span><span>@(account.AnnouncementsCount)</span></div>
+              <div class="sum-row"><span>Vehicles registered</span><span>@(account.VehiclesCount)</span></div>
+              <div class="sum-row"><span>Staff registered</span><span>@(account.StaffCount)</span></div>
+            </div>
+            @await Html.PartialAsync("~/Views/Admin/Crud/Partials/StatusList.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icons"] = roleIcons, ["current"] = account.AdminRole, ["title"] = "Role" }))
+            @if (!(Truthy(canManage))) {<text>
+            <div class="al a-in mt-4"><i class="bi bi-info-circle-fill" style="font-size:18px"></i><div>Only a Super Admin can edit or remove admin accounts.</div></div>
+            </text>}
+}
+
+@section Modals {
+@if (Truthy(canManage)) {<text>
+@{ PushWriter(new System.IO.StringWriter()); }
+    @await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = account.FirstName, ["last"] = account.LastName })
+    <div style="flex:1">
+      <div style="font-weight:700;font-size:15px">@(account.FullName)</div>
+      <div class="kv">@(account.Email) &#183; @(account.AdminRole)</div>
+    </div>
+  @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_DeleteGuard.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["title"] = "Delete admin " + account.FullName + "?", ["code"] = account.Code, ["table"] = "admins", ["noun"] = "admin", ["uses"] = uses, ["blocked"] = blocked, ["confirm-label"] = "Type the email address to confirm", ["confirm-value"] = account.Email, ["delete-action"] = route("admin.admins.destroy", account), ["delete-note"] = "Available only once no vehicle, staff member, catalogue entry, review or announcement references this admin.", ["summary"] = __slot1 }))
+</text>}
+}

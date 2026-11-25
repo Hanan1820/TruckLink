@@ -1,0 +1,129 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic from = ViewData["from"];
+    dynamic generatedAt = ViewData["generatedAt"];
+    dynamic generatedBy = ViewData["generatedBy"];
+    dynamic meta = ViewData["meta"];
+    dynamic period = ViewData["period"];
+    dynamic report = ViewData["report"];
+    dynamic to = ViewData["to"];
+    dynamic type = ViewData["type"];
+}
+
+
+
+
+@{ ViewData["title"] = At(meta, 0); }
+
+@{
+dynamic range = IsSameYear(from, to) ? Format(from, "d M") + " – " + Format(to, "d M Y") : Format(from, "d M Y") + " – " + Format(to, "d M Y");
+dynamic stars =  (Func<dynamic, dynamic>)((n) => Join(Map(Collect(Range(1, 5)),  (Func<dynamic, dynamic>)((i) => "<i class=\"bi " + (i <= n ? "bi-star-fill" : "bi-star") + "\" style=\"color:" + (i <= n ? "#B7791F" : "var(--line2)") + "\"></i>")), ""));
+}
+
+@section Content {
+        <div data-no-print>
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a> <i class="bi bi-chevron-right" style="font-size:9px"></i>
+          <a href="@(route("admin.reports.index"))" class="text-reset text-decoration-none">Reports</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>@(At(meta, 0))</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">@(At(meta, 0))</h1>
+               <p class="h-sub">@(At(meta, 2)) &#183; @(range)</p></div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-tl b-md" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mb-4 align-items-center flex-wrap">
+          @foreach (var (key, label) in Pairs((object?)(TruckLink.Controllers.Admin.ReportController.PERIODS))) {<text>
+          <a class="@Cls(new Dictionary<string, object?> { ["0"] = "chip text-decoration-none", ["chip-on"] = period == key })" href="@(route("admin.reports.show", new Dictionary<string, object?> { ["0"] = type, ["period"] = key }))">@(label)</a>
+          </text>}
+          <form method="GET" action="@(route("admin.reports.show", type))" class="ms-auto d-flex align-items-center gap-2">
+            <label class="kv" for="from">From</label><input class="fld" id="from" name="from" type="date" max="@(ToDateString(today()))" value="@(ToDateString(from))" style="width:170px;padding-top:8px;padding-bottom:8px">
+            <label class="kv" for="to">to</label><input class="fld" id="to" name="to" type="date" max="@(ToDateString(today()))" value="@(ToDateString(to))" style="width:170px;padding-top:8px;padding-bottom:8px">
+            <button type="submit" class="@Cls(new Dictionary<string, object?> { ["0"] = "btn b-sm", ["btn-tl"] = period == "custom", ["btn-out"] = period != "custom" })">Apply</button>
+          </form>
+        </div>
+        </div>
+
+        <div class="card-tl p-4">
+          
+          <div class="d-flex justify-content-between align-items-center pb-3 mb-4" style="border-bottom:1px solid var(--line)">
+            <div class="d-flex align-items-center gap-3"><img src="@(asset("img/logo-full-dark.png"))" alt="TruckLink" style="height:30px">
+              <div><h2 class="h-card mb-0">@(At(meta, 0))</h2><div class="kv">@(range)</div></div></div>
+            <div class="kv" style="text-align:right">Generated @(Format(generatedAt, "d M Y, H:i"))<br>by @(generatedBy.FullName) &#183; @(generatedBy.Code)</div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            @foreach (var __v10 in At(report, "kpis")) {
+dynamic icon = At(__v10, 0);
+dynamic colour = At(__v10, 1);
+dynamic value = At(__v10, 2);
+dynamic label = At(__v10, 3);<text>
+            <div class="col-3"><div class="tile d-flex align-items-center gap-3"><div class="sec-ic" style="color:var(@(colour))"><i class="bi @(icon)"></i></div><div><div class="k">@(label)</div><div class="v" style="font-size:17px">@(value)</div></div></div></div>
+            </text>}
+          </div>
+
+          @switch (type) {
+
+          case "warehouse":
+          <table class="tbl" style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+            <thead><tr><th>Warehouse</th><th>Keeper</th><th>Occupancy</th><th>In storage / reserved</th><th>Intakes</th><th>Released</th><th>Extended</th><th>Fees</th></tr></thead>
+            <tbody>@foreach (var r in At(report, "rows")) {<text><tr><td><div style="font-weight:600">@(At(r, "warehouse").WarehouseName)</div><div class="kv">@(At(r, "warehouse").City) &#183; @(Num(At(r, "warehouse").TotalCapacityM3)) m&#179;</div></td><td>@(At(r, "warehouse").Keeper?.FullName)</td><td><div class="d-flex align-items-center gap-2"><div class="bar-track" style="width:90px"><div class="bar-fill" style="width:@(At(r, "warehouse").OccupancyPercent)%;background:var(--p)"></div></div><span class="kv">@(At(r, "warehouse").OccupancyPercent)% &#183; @(Num(At(r, "warehouse").UsedCapacityM3)) m&#179;</span></div></td><td class="mono-d">@(At(r, "active"))</td><td class="mono-d">@(At(r, "intake"))</td><td class="mono-d">@(At(r, "released"))</td><td class="mono-d">@(At(r, "extended"))</td><td class="mono-d">@(Sar(At(r, "fees"))) SAR</td></tr></text>}</tbody>
+          </table>
+          <div class="d-flex gap-2 mt-3">@foreach (var s in TruckLink.Models.StorageRequest.STATUSES) {<text>@{ PushWriter(new System.IO.StringWriter()); }@(s) &#183; @((int)(At(At(report, "byStatus"), s) ?? 0))@{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = s, ["slot"] = __slot1 })</text>}</div>
+          break;
+
+          case "revenue":
+          <table class="tbl" style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+            <thead><tr><th>Service</th><th>Type</th><th>Price</th><th>Bookings</th><th>Quantity</th><th>Revenue</th><th>Share</th></tr></thead>
+            <tbody>@foreach (var r in At(report, "rows")) {<text><tr><td style="font-weight:600">@(At(r, "service").ServiceName)@if (!(Truthy(At(r, "service").IsActive))) {<text> <span class="pill p-rej" style="font-size:11px;padding:3px 9px">Inactive</span></text>}</td><td><span class="pill p-neu">@(At(r, "service").ServiceType)</span></td><td class="kv">@(Sar(At(r, "service").BasePrice)) SAR @(At(r, "service").PricingUnit)</td><td class="mono-d">@(At(r, "lines"))</td><td class="mono-d">@(At(r, "quantity"))</td><td class="mono-d" style="font-weight:700">@(Sar(At(r, "revenue"))) SAR</td><td><div class="d-flex align-items-center gap-2"><div class="bar-track" style="width:70px"><div class="bar-fill" style="width:@(Round(At(r, "share")))%;background:var(--p)"></div></div><span class="kv">@(Round(At(r, "share")))%</span></div></td></tr></text>}</tbody>
+          </table>
+          <div class="row g-3 mt-2">
+            @foreach (var (status, label) in Pairs((object?)(new Dictionary<string, object?> { ["Paid"] = "Collected", ["Refunded"] = "Refunded", ["Payment Pending"] = "Awaiting payment", ["Failed"] = "Failed attempts" }))) {<text>
+            <div class="col-3"><div class="tile"><div class="k">@(label)</div><div class="v" style="font-size:17px">@(Sar(At(At(report, "payments"), status).Amount ?? 0)) <span class="u">SAR</span></div><div class="u">@((int)(At(At(report, "payments"), status).N ?? 0)) @(Plural("payment", (int)(At(At(report, "payments"), status).N ?? 0)))</div></div></div>
+            </text>}
+          </div>
+          break;
+
+
+          case "satisfaction":
+          <div class="row g-4 mb-4">
+            <div class="col-5">
+              <div class="cap mb-3">Ratings</div>
+              @{
+dynamic max = Max(1, Max(At(report, "distribution")));
+}
+              @foreach (var (rating, n) in Pairs((object?)(At(report, "distribution")))) {<text>
+              <div class="d-flex align-items-center gap-3 mb-2"><span class="kv" style="width:52px">@(rating) @(Plural("star", rating))</span>
+                <div class="bar-track" style="flex:1"><div class="bar-fill" style="width:@(Round(n / max * 100))%;background:@(rating >= 4 ? "var(--ok)" : (rating == 3 ? "var(--wn)" : "var(--dg)"))"></div></div>
+                <span class="kv" style="width:24px;text-align:right"><b>@(n)</b></span></div>
+              </text>}
+            </div>
+            <div class="col-7">
+              <div class="cap mb-3">Drivers</div>
+              <table class="tbl" style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+                <thead><tr><th>Driver</th><th>Reviews</th><th>Average</th></tr></thead>
+                <tbody>@if (!IsEmpty(At(report, "drivers"))) {<text>
+@foreach (var d in At(report, "drivers")) {<text><tr><td><div class="d-flex align-items-center gap-2">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = At(d, "driver").FirstName, ["last"] = At(d, "driver").LastName, ["sm"] = true })@(At(d, "driver").FullName)</div></td><td class="mono-d">@(At(d, "reviews"))</td><td>@Html.Raw(stars((int)Round(At(d, "average")))) <span class="kv">@(NumberFormat(At(d, "average"), 1))</span></td></tr></text>}
+</text>} else {<text><tr><td colspan="3" class="kv">No reviewed jobs in this period.</td></tr></text>}</tbody>
+              </table>
+            </div>
+          </div>
+          <div class="cap mb-3">Comments</div>
+          <table class="tbl" style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+            <thead><tr><th>Rating</th><th>Comment</th><th>Booking</th><th>Customer</th><th>Date</th></tr></thead>
+            <tbody>@if (!IsEmpty(At(report, "rows"))) {<text>
+@foreach (var review in At(report, "rows")) {<text><tr><td style="white-space:nowrap">@Html.Raw(stars(review.Rating))</td><td>@((Truthy(review.Comment) ? review.Comment : "-"))</td><td class="mono-d">@(review.Booking.Reference)</td><td>@(review.Customer.FullName)</td><td class="kv">@(Format(review.CreatedAt, "d M Y"))</td></tr></text>}
+</text>} else {<text><tr><td colspan="5" class="kv">No reviews in this period.</td></tr></text>}</tbody>
+          </table>
+          break;
+          }
+        </div>
+}
+
+@section Modals {
+<style media="print">
+  .side, .topbar, [data-no-print] { display: none !important; }
+  .pad { padding: 0 !important; }
+  .card-tl { box-shadow: none !important; }
+</style>
+}

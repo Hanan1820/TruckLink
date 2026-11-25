@@ -1,0 +1,114 @@
+
+@{
+    dynamic booking = ViewData["booking"];
+    dynamic ledger = ViewData["ledger"];
+}
+
+
+
+@{
+dynamic customer = User(auth("customer"));
+dynamic pe = errors.GetBag("payment");
+dynamic dueRows = Filter(ledger,  (Func<dynamic, dynamic>)((r) => At(r, "due") > 0));
+dynamic chosen = ArrayMap("intval", (object[])old("lines", All(Keys(dueRows))));
+dynamic method = old("payment_method", "Mada");
+dynamic saved = customer.HasSavedCard();
+dynamic source = old("card_source", saved ? "saved" : "new");
+dynamic methods = new Dictionary<string, object?> { ["Mada"] = "bi-credit-card-2-front", ["Credit Card"] = "bi-credit-card", ["Apple Pay"] = "bi-apple", ["STC Pay"] = "bi-phone" };
+}
+@{ PushWriter(new System.IO.StringWriter()); }
+  <form method="POST" action="@(route("customer.bookings.pay.store", booking))" data-pay-form>
+    @Html.AntiForgeryToken()
+    <div class="m-head d-flex justify-content-between align-items-start">
+      <div class="d-flex gap-3"><div class="sec-ic"><i class="bi bi-credit-card-fill"></i></div>
+        <div><h2 class="h-card" id="pay-title">Pay for @(booking.Reference)</h2><p class="kv mb-0">You pay per service - every payment gets its own invoice</p></div></div>
+      <i class="bi bi-x-lg" data-modal-close role="button" tabindex="0" aria-label="Close" style="color:var(--mu);font-size:17px;cursor:pointer"></i>
+    </div>
+    <div class="m-body">
+      @if (Truthy(pe.Has("lines"))) {<text>
+      <div class="al a-dg mb-3" style="font-size:13.5px"><i class="bi bi-exclamation-octagon-fill" style="font-size:16px"></i><div>@(First(pe, "lines"))</div></div>
+      </text>}
+      <div class="sum-cap mb-2">Services</div>
+      @foreach (var (id, row) in Pairs((object?)(dueRows))) {<text>
+      <label class="sum-row align-items-center" style="cursor:pointer">
+        <span class="d-flex align-items-center gap-2"><input class="form-check-input" type="checkbox" name="lines[]" value="@(id)" data-amount="@(At(row, "due"))" @(Truthy(InArray(id, chosen, true)) ? "checked" : "") style="margin:0">
+          @(At(row, "line").Service.ServiceName)@if (At(row, "line").Quantity > 1) {<text> <span class="kv">× @(At(row, "line").Quantity)</span></text>}
+          @if (At(row, "paid") > 0) {<text><span class="kv">· @(Sar(At(row, "paid"))) SAR already paid</span></text>}</span>
+        <span>@(Sar(At(row, "due"))) SAR</span>
+      </label>
+      </text>}
+      <div class="tot-box mt-3"><span class="t-l">To pay now</span><span class="t-v"><span data-pay-total>@(Sar(Sum(Only(dueRows, chosen), "due")))</span> SAR</span></div>
+
+      <div class="sum-cap mt-4 mb-2">Payment method</div>
+      <div class="row g-2 mb-3">
+        @foreach (var (name, icon) in Pairs((object?)(methods))) {<text>
+        <div class="col-3"><label class="@Cls(new Dictionary<string, object?> { ["0"] = "d-flex flex-column align-items-center gap-2 text-center", ["pick-on"] = method == name, ["pick"] = method != name })" style="cursor:pointer;padding-left:8px;padding-right:8px" data-method-card>
+          <input class="visually-hidden" type="radio" name="payment_method" value="@(name)" @(method == name ? "checked" : "")>
+          <div class="@Cls(new Dictionary<string, object?> { ["0"] = "ic-box", ["ic-on"] = method == name })" style="width:40px;height:40px;font-size:18px"><i class="bi @(icon)"></i></div>
+          <span style="font-weight:600;font-size:13.5px">@(name)</span>
+        </label></div>
+        </text>}
+      </div>
+
+      <div data-card-section @Html.Raw((!InArray(method, new object[] { "Mada", "Credit Card" }, true) ? " hidden " : ""))>
+        @if (Truthy(saved)) {<text>
+        <div class="d-flex flex-column gap-2 mb-3">
+          <label class="d-flex align-items-center gap-2" style="font-size:14px;cursor:pointer"><input class="form-check-input" type="radio" name="card_source" value="saved" @(source == "saved" ? "checked" : "") style="margin:0">
+            Saved @(customer.CardType) card <span class="mono-d">@(customer.CardNumber)</span> <span class="kv">· expires @(customer.ExpiryDate)</span></label>
+          <label class="d-flex align-items-center gap-2" style="font-size:14px;cursor:pointer"><input class="form-check-input" type="radio" name="card_source" value="new" @(source == "new" ? "checked" : "") style="margin:0"> Use another card</label>
+        </div>
+        </text>} else {<text>
+        <input type="hidden" name="card_source" value="new">
+        </text>}
+        <div class="row g-3" data-new-card @Html.Raw((saved && source == "saved" ? " hidden " : ""))>
+          <div class="col-12">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "card_holder_name", ["label"] = "Name on card", ["bag"] = "payment", ["required"] = true, ["maxlength"] = "100", ["autocomplete"] = "cc-name", ["value"] = old("card_holder_name", customer.FullName) })</div>
+          <div class="col-6">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "card_number", ["label"] = "Card number", ["bag"] = "payment", ["required"] = true, ["inputmode"] = "numeric", ["maxlength"] = "19", ["placeholder"] = "1234 5678 9012 3456", ["autocomplete"] = "cc-number", ["pattern"] = "^[0-9 ]{16,19}$", ["value"] = "" })</div>
+          <div class="col-3">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "expiry_date", ["label"] = "Expiry", ["bag"] = "payment", ["required"] = true, ["maxlength"] = "5", ["placeholder"] = "MM/YY", ["autocomplete"] = "cc-exp", ["pattern"] = "^(0[1-9]|1[0-2])/[0-9]{2}$" })</div>
+          <div class="col-3">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "cvv", ["label"] = "CVV", ["bag"] = "payment", ["required"] = true, ["type"] = "password", ["inputmode"] = "numeric", ["maxlength"] = "4", ["pattern"] = "^[0-9]{3,4}$", ["autocomplete"] = "cc-csc" })</div>
+          <div class="col-12"><label class="d-flex align-items-center gap-2" style="font-size:13.5px;cursor:pointer"><input class="form-check-input" type="checkbox" name="save_card" value="1" @(Truthy(old("save_card")) ? "checked" : "") style="margin:0"> Save this card for next time - only the last four digits are kept</label></div>
+        </div>
+        <div class="hint">The CVV is used for this payment only and is never stored.</div>
+      </div>
+      <div class="al a-in" style="font-size:13.5px" data-wallet @Html.Raw((Truthy(InArray(method, new object[] { "Mada", "Credit Card" }, true)) ? " hidden " : ""))><i class="bi bi-phone-fill" style="font-size:16px"></i><div>You confirm the payment in <b data-wallet-name>@(method)</b> on your phone.</div></div>
+    </div>
+    <div class="m-foot justify-content-end gap-2"><button type="button" class="btn btn-out b-md" data-modal-close>Cancel</button><button type="submit" class="btn btn-tl b-md" data-pay-submit><i class="bi bi-lock-fill"></i> Pay <span data-pay-amount>@(Sar(Sum(Only(dueRows, chosen), "due")))</span> SAR</button></div>
+  </form>
+@{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_Modal.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["id"] = "pay", ["width"] = "760", ["padding"] = "46", ["open"] = Any(pe) || Boolean(request(), "pay"), ["label"] = "pay-title", ["slot"] = __slot1 }))
+
+@section Scripts {
+<script>
+  
+  (function () {
+    var form = document.querySelector('[data-pay-form]');
+    if (!form) return;
+    function money(v) { return v.toLocaleString('en-US', { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
+    function paint() {
+      var total = 0;
+      form.querySelectorAll('[name="lines[]"]:checked').forEach(function (c) { total += Number(c.dataset.amount); });
+      form.querySelector('[data-pay-total]').textContent = money(total);
+      form.querySelector('[data-pay-amount]').textContent = money(total);
+      var submit = form.querySelector('[data-pay-submit]');
+      submit.disabled = total <= 0;
+      submit.classList.toggle('btn-dis', total <= 0);
+      submit.classList.toggle('btn-tl', total > 0);
+
+      var method = form.querySelector('[name=payment_method]:checked').value, card = method === 'Mada' || method === 'Credit Card';
+      form.querySelectorAll('[data-method-card]').forEach(function (l) {
+        var on = l.querySelector('input').checked;
+        l.classList.toggle('pick-on', on); l.classList.toggle('pick', !on);
+        l.querySelector('.ic-box').classList.toggle('ic-on', on);
+      });
+      form.querySelector('[data-card-section]').hidden = !card;
+      form.querySelector('[data-wallet]').hidden = card;
+      form.querySelector('[data-wallet-name]').textContent = method;
+      var source = form.querySelector('[name=card_source]:checked') || form.querySelector('[name=card_source]');
+      var fresh = card && source.value === 'new';
+      var box = form.querySelector('[data-new-card]');
+      box.hidden = !fresh;
+      box.querySelectorAll('input').forEach(function (i) { i.disabled = !fresh; });
+    }
+    form.addEventListener('change', paint);
+    paint();
+  })();
+</script>
+}

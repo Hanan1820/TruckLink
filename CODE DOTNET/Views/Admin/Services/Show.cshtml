@@ -1,0 +1,86 @@
+
+@using C = TruckLink.Controllers.Admin.ServiceController
+@{ Layout = "~/Views/Admin/Crud/ShowPage.cshtml"; }
+@{
+    dynamic month = ViewData["month"];
+    dynamic recent = ViewData["recent"];
+    dynamic service = ViewData["service"];
+    dynamic total = ViewData["total"];
+    dynamic uses = ViewData["uses"];
+}
+
+@{
+dynamic page = new Dictionary<string, object?> { ["title"] = service.ServiceName, ["crumbs"] = new object[] { new object[] { "Services", route("admin.services.index") } }, ["search"] = new object[] { "Search services by name, type or description", route("admin.services.index") }, ["edit"] = route("admin.services.edit", service), ["deletable"] = true, ["savedKey"] = "service:" + service.ServiceId, ["noun"] = "Service", ["code"] = service.Code };
+dynamic icon = At(TruckLink.Models.Service.ICONS, service.ServiceName) ?? At(C.TYPE_ICONS, service.ServiceType);
+dynamic state = service.IsActive ? "1" : "0";
+}
+
+
+@section HeadIcon {
+            <div class="veh-ic" style="width:56px;height:56px;font-size:26px"><i class="bi @(icon)"></i></div>
+}
+@section HeadSub {@(service.ServiceType) &#183; <span class="mono-d">@(service.Code)</span> &#183; @(NumberFormat(service.BasePrice, 2)) SAR @(service.PricingUnit)}
+@section HeadPill {
+            @await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = At(C.STATUS_LABELS, state), ["icon"] = At(At(C.STATUS_ICONS, state), 0) + "-fill" })
+}
+
+@section Main {
+            <div class="card-tl p-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-clipboard-data"></i></div>
+                <div><h2 class="h-card">Specification</h2>
+                     <p class="kv mb-0">Stored attributes of the <b>service</b> entity</p></div></div>
+              <div class="row g-3">
+                <div class="col-6"><div class="tile"><div class="k">Service name</div><div class="v" style="font-size:16px">@(service.ServiceName)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Type</div><div class="v" style="font-size:16px">@(service.ServiceType)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Record id</div><div class="v" style="font-family:ui-monospace,Menlo,monospace;font-size:16px">@(service.Code)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Base price</div><div class="v">@(Sar(service.BasePrice)) <span class="u">SAR</span></div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Pricing unit</div><div class="v" style="font-size:16px">@(service.PricingUnit)</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Status</div><div class="v" style="font-size:16px;color:var(@(At(At(C.STATUS_ICONS, state), 1)))">@(At(C.STATUS_LABELS, state))</div></div></div>
+                <div class="col-3"><div class="tile"><div class="k">Added by</div><div class="v" style="font-size:16px">@(service.Admin?.FullName ?? "-")</div><div class="u">@(service.Admin?.Code)</div></div></div>
+                <div class="col-12"><div class="tile"><div class="k">Description</div><div class="kv mt-1" style="font-size:14px">@((Truthy(service.Description) ? service.Description : "-"))</div></div></div>
+              </div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-clipboard-check"></i></div>
+                <div><h2 class="h-card">Recent bookings</h2>
+                     <p class="kv mb-0">The last bookings that include this service</p></div></div>
+              <table class="tbl" style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+                <thead><tr><th>Booking</th><th>Customer</th><th>Quantity</th><th>Subtotal</th><th>Status</th></tr></thead>
+                <tbody>
+                  @if (!IsEmpty(recent)) {<text>
+@foreach (var line in recent) {<text>
+                  <tr><td class="mono-d" style="font-weight:600"><a class="text-reset text-decoration-none" href="@(route("admin.bookings.show", line.Booking))">@(line.Booking.Reference)</a></td>
+                      <td><div class="d-flex align-items-center gap-2">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = line.Booking.Customer.FirstName, ["last"] = line.Booking.Customer.LastName, ["sm"] = true })@(line.Booking.Customer.FullName)</div></td>
+                      <td class="mono-d">@(line.Quantity)</td><td class="mono-d">@(Sar(line.Subtotal)) SAR</td><td>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = line.Booking.BookingStatus })</td></tr>
+                  </text>}
+</text>} else {<text>
+                  <tr><td colspan="5" class="kv">No booking includes this service yet.</td></tr>
+                  </text>}
+                </tbody>
+              </table>
+            </div>
+}
+
+@section Side {
+            <div class="card-tl p-4 summary">
+              <div class="cap mb-3">This month</div>
+              <div class="sum-row"><span>Bookings</span><span>@(At(month, "lines"))</span></div>
+              <div class="sum-row"><span>Quantity</span><span>@(At(month, "quantity"))</span></div>
+              <div class="sum-row" style="border-bottom:1px solid var(--line)"><span>Revenue</span><span>@(Sar(At(month, "revenue"))) SAR</span></div>
+              <div class="sum-row"><span>All-time bookings</span><span>@(At(total, "lines"))</span></div>
+              <div class="sum-row"><span>All-time revenue</span><span>@(Sar(At(total, "revenue"))) SAR</span></div>
+            </div>
+            @await Html.PartialAsync("~/Views/Admin/Crud/Partials/StatusList.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["icons"] = C.STATUS_ICONS, ["labels"] = C.STATUS_LABELS, ["current"] = state }))
+}
+
+@section Modals {
+@{ PushWriter(new System.IO.StringWriter()); }
+    <div class="veh-ic"><i class="bi @(icon)"></i></div>
+    <div style="flex:1">
+      <div style="font-weight:700;font-size:15px">@(service.ServiceName)</div>
+      <div class="kv">@(service.ServiceType) &#183; @(NumberFormat(service.BasePrice, 2)) SAR @(service.PricingUnit)</div>
+    </div>
+    @await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = At(C.STATUS_LABELS, state) })
+  @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_DeleteGuard.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["title"] = "Delete service " + service.ServiceName + "?", ["code"] = service.Code, ["table"] = "services", ["uses"] = uses, ["deactivate"] = new Dictionary<string, object?> { ["title"] = "Deactivate the service", ["text"] = "The record is kept for bookings, invoices and reports, but customers can no longer choose it.", ["action"] = route("admin.services.deactivate", service), ["button"] = "Deactivate", ["icon"] = "bi-pause-circle", ["done"] = !service.IsActive }, ["confirm-label"] = "Type the service name to confirm", ["confirm-value"] = service.ServiceName, ["delete-action"] = route("admin.services.destroy", service), ["delete-note"] = "Available only once no booking includes this service.", ["summary"] = __slot1 }))
+}

@@ -1,0 +1,47 @@
+
+@using C = TruckLink.Controllers.Admin.ServiceController
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic active = ViewData["active"];
+    dynamic byType = ViewData["byType"];
+    dynamic highlight = ViewData["highlight"];
+    dynamic services = ViewData["services"];
+    dynamic total = ViewData["total"];
+}
+
+
+
+@{ ViewData["title"] = "Services"; }
+@{ ViewData["search_placeholder"] = "Search services by name, type or description"; }
+@{ ViewData["search_action"] = route("admin.services.index"); }
+
+@{
+
+}
+
+@section Content {
+        @if (Truthy(session("status"))) {<text>
+        <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div>@(session("status"))</div></div>
+        </text>}
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>Services</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">Services &amp; Prices</h1>
+               <p class="h-sub">@(total) @(Plural("service", total)) in the catalogue &#183; @(active) offered to customers</p></div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-tl b-md" href="@(route("admin.services.create"))"><i class="bi bi-plus-lg"></i> New Service</a>
+          </div>
+        </div>
+        @await Html.PartialAsync("~/Views/Admin/Crud/Partials/Filters.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["chips"] = new Dictionary<string, object?> { ["param"] = "type", ["all"] = new object[] { "All services", total }, ["items"] = All(Map(Collect(TruckLink.Models.Service.TYPES),  (Func<dynamic, dynamic>)((t) => new object[] { t, t, (int)(At(byType, t) ?? 0), At(C.TYPE_ICONS, t) }))) }, ["menus"] = new Dictionary<string, object?> { ["0"] = new Dictionary<string, object?> { ["param"] = "status", ["icon"] = "bi-funnel", ["options"] = new Dictionary<string, object?> { [""] = "Any status" } + C.STATUS_LABELS }, ["1"] = new Dictionary<string, object?> { ["param"] = "sort", ["icon"] = "bi-sort-down", ["options"] = C.SORTS, ["default"] = "type" } } }))
+        <div class="card-tl" style="overflow:hidden">
+          <table class="tbl">
+            <thead><tr>
+              <th>Service</th><th>Type</th><th>Base price</th><th>Pricing unit</th><th>Times booked</th><th>Status</th>
+              <th style="text-align:right">Actions</th>
+            </tr></thead>
+            <tbody>@if (!IsEmpty(services)) {<text>
+@foreach (var service in services) {<text><tr class="@Cls(new Dictionary<string, object?> { ["row-new"] = highlight == service.ServiceId })"><td><div class="d-flex align-items-center gap-3"><div class="veh-ic" style="width:38px;height:38px;font-size:17px"><i class="bi @(At(TruckLink.Models.Service.ICONS, service.ServiceName) ?? At(C.TYPE_ICONS, service.ServiceType))"></i></div><div><div style="font-weight:600">@(service.ServiceName)</div><div class="kv">@(service.Code)</div></div></div></td><td><span class="pill p-neu">@(service.ServiceType)</span></td><td class="mono-d">@(NumberFormat(service.BasePrice, 2)) SAR</td><td class="kv">@(service.PricingUnit)</td><td class="mono-d">@(service.BookingsCount)</td><td>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = service.IsActive ? "Active" : "Inactive" })</td><td style="text-align:right"><div class="d-flex gap-2 justify-content-end"><a class="ib text-decoration-none" href="@(route("admin.services.show", service))" aria-label="View @(service.ServiceName)"><i class="bi bi-eye"></i></a><a class="ib text-decoration-none" href="@(route("admin.services.edit", service))" aria-label="Edit @(service.ServiceName)"><i class="bi bi-pencil"></i></a><a class="ib ib-dg text-decoration-none" href="@(route("admin.services.show", new Dictionary<string, object?> { ["0"] = service, ["delete"] = 1 }))" aria-label="Delete @(service.ServiceName)"><i class="bi bi-trash3"></i></a></div></td></tr></text>}
+</text>} else {<text><tr><td colspan="7" class="kv">No services match these filters.</td></tr></text>}</tbody>
+          </table>
+          @await Html.PartialAsync("~/Views/Shared/_Pager.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["paginator"] = services, ["label"] = Plural("service", Total(services)) }))
+        </div>
+}

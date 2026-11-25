@@ -1,0 +1,42 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic byTitle = ViewData["byTitle"];
+    dynamic highlight = ViewData["highlight"];
+    dynamic kpis = ViewData["kpis"];
+    dynamic staff = ViewData["staff"];
+    dynamic total = ViewData["total"];
+}
+
+
+
+@{ ViewData["title"] = "Staff"; }
+@{ ViewData["search_placeholder"] = "Search staff by name, email, phone or licence"; }
+@{ ViewData["search_action"] = route("admin.staff.index"); }
+
+@section Content {
+        @if (Truthy(session("status"))) {<text>
+        <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div>@(session("status"))</div></div>
+        </text>}
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>Staff</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">Operations Staff</h1>
+               <p class="h-sub">@(total) staff @(Plural("member", total)) &#183; @(At(kpis, "onJob")) @(At(kpis, "onJob") == 1 ? "driver" : "drivers") currently on a job</p></div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-tl b-md" href="@(route("admin.staff.create"))"><i class="bi bi-plus-lg"></i> New Staff Member</a>
+          </div>
+        </div>
+        @await Html.PartialAsync("~/Views/Admin/Crud/Partials/Filters.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["chips"] = new Dictionary<string, object?> { ["param"] = "title", ["all"] = new object[] { "All staff", total }, ["items"] = All(Map(Collect(TruckLink.Models.Staff.TITLES),  (Func<dynamic, dynamic>)((t) => new object[] { t, Plural(t), (int)(At(byTitle, t) ?? 0), At(TruckLink.Models.Staff.TITLE_ICONS, t) }))) }, ["menus"] = new Dictionary<string, object?> { ["0"] = new Dictionary<string, object?> { ["param"] = "status", ["icon"] = "bi-funnel", ["options"] = new Dictionary<string, object?> { [""] = "Any status" } + ArrayCombine(TruckLink.Models.Staff.STATUSES, TruckLink.Models.Staff.STATUSES) }, ["1"] = new Dictionary<string, object?> { ["param"] = "sort", ["icon"] = "bi-sort-down", ["options"] = TruckLink.Controllers.Admin.StaffController.SORTS, ["default"] = "name" } } }))
+        <div class="card-tl" style="overflow:hidden">
+          <table class="tbl">
+            <thead><tr>
+              <th>Staff member</th><th>Job title</th><th>Phone</th><th>Shift</th><th>Hired</th><th>Status</th>
+              <th style="text-align:right">Actions</th>
+            </tr></thead>
+            <tbody>@if (!IsEmpty(staff)) {<text>
+@foreach (var member in staff) {<text><tr class="@Cls(new Dictionary<string, object?> { ["row-new"] = highlight == member.StaffId })"><td><div class="d-flex align-items-center gap-3">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = member.FirstName, ["last"] = member.LastName, ["sm"] = true })<div><div style="font-weight:600">@(member.FullName)</div><div class="kv">@(member.Code) &#183; @(member.Email)</div></div></div></td><td><div class="d-flex align-items-center gap-2"><i class="bi @(At(TruckLink.Models.Staff.TITLE_ICONS, member.JobTitle))" style="color:var(--s)"></i><div>@(member.JobTitle)@if (member.LicenseNumber || member.Specialty) {<text><div class="kv">@(member.LicenseNumber ? "Licence " + member.LicenseNumber : Ucfirst(member.Specialty))</div></text>}</div></div></td><td class="mono-d">@(member.PhoneDisplay)</td><td class="kv">@(member.ShiftStartLabel ? member.ShiftStartLabel + "–" + member.ShiftEndLabel : "-")</td><td class="kv">@(Format(member.HireDate, "d M Y"))</td><td>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = member.StaffStatus })</td><td style="text-align:right"><div class="d-flex gap-2 justify-content-end"><a class="ib text-decoration-none" href="@(route("admin.staff.show", member))" aria-label="View @(member.FullName)"><i class="bi bi-eye"></i></a><a class="ib text-decoration-none" href="@(route("admin.staff.edit", member))" aria-label="Edit @(member.FullName)"><i class="bi bi-pencil"></i></a><a class="ib ib-dg text-decoration-none" href="@(route("admin.staff.show", new Dictionary<string, object?> { ["0"] = member, ["delete"] = 1 }))" aria-label="Delete @(member.FullName)"><i class="bi bi-trash3"></i></a></div></td></tr></text>}
+</text>} else {<text><tr><td colspan="7" class="kv">No staff match these filters.</td></tr></text>}</tbody>
+          </table>
+          @await Html.PartialAsync("~/Views/Shared/_Pager.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["paginator"] = staff, ["label"] = "staff" }))
+        </div>
+}

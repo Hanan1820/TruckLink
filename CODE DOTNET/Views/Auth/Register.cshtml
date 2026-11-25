@@ -1,0 +1,94 @@
+
+@{ Layout = "~/Views/Shared/_AuthLayout.cshtml"; }
+@{
+    dynamic cities = ViewData["cities"];
+}
+
+
+
+@{ ViewData["title"] = "Create account"; }
+@{ ViewData["panel_title"] = "Your move starts here."; }
+@{ ViewData["panel_text"] = "Create an account, upload a few photos of your furniture, and we will tell you exactly which truck you need and what it costs."; }
+
+@section Content {
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:48px">
+      <form method="POST" action="@(route("register"))" style="width:452px">
+        @Html.AntiForgeryToken()
+        <h2 class="ff" style="font-size:30px;font-weight:800;color:var(--pd);margin:0 0 6px">Create your account</h2>
+        <p class="kv mb-4">Already registered? <a href="@(route("login"))" class="text-decoration-none"><b style="color:var(--p)">Sign in instead</b></a></p>
+        @if (errors.Has("credentials")) { var message = errors.First("credentials");<text>
+        <div class="al a-dg mb-3" style="font-size:13px;padding:13px 15px" role="alert"><i class="bi bi-exclamation-octagon-fill" style="font-size:16px"></i><div>@(message)</div></div>
+        </text>}
+        <div class="row g-3 mb-3">
+          <div class="col-6">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "first_name", ["label"] = "First name", ["required"] = true, ["minlength"] = "2", ["maxlength"] = "50", ["autocomplete"] = "given-name" })</div>
+          <div class="col-6">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "last_name", ["label"] = "Last name", ["required"] = true, ["minlength"] = "2", ["maxlength"] = "50", ["autocomplete"] = "family-name" })</div>
+        </div>
+        <div class="mb-3">@{ PushWriter(new System.IO.StringWriter()); }
+          <div style="position:relative"><i class="bi bi-envelope" style="position:absolute;left:15px;top:14px;color:var(--s)"></i>
+          <input id="email" name="email" type="email" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("email") })" style="padding-left:43px" value="@(old("email"))" required maxlength="100" autocomplete="email"></div>
+        @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "email", ["label"] = "Email address", ["required"] = true, ["slot"] = __slot1 })</div>
+        <div class="row g-3 mb-3">
+          <div class="col-7">@{ PushWriter(new System.IO.StringWriter()); }
+            <div style="position:relative"><span style="position:absolute;left:15px;top:12px;color:var(--s);font-size:14px">+966</span>
+            <input id="phone" name="phone" type="tel" inputmode="numeric" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("phone") })" style="padding-left:54px" value="@(old("phone"))" required maxlength="13" pattern="^0?5[0-9]\s?[0-9]{3}\s?[0-9]{4}$" placeholder="5X XXX XXXX" title="Saudi mobile number, e.g. 55 412 8830" autocomplete="tel-national"></div>
+          @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "phone", ["label"] = "Phone number", ["required"] = true, ["slot"] = __slot2 })</div>
+          <div class="col-5">@{ PushWriter(new System.IO.StringWriter()); }
+            <div style="position:relative"><i class="bi bi-chevron-down" style="position:absolute;right:15px;top:15px;color:var(--s);font-size:12px;pointer-events:none"></i>
+            <select id="city" name="city" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("city") })" style="appearance:none" required>
+              <option value="" disabled @(!old("city") ? "selected" : "")>Select your city</option>
+              @foreach (var city in cities) {<text><option @(old("city") == city ? "selected" : "")>@(city)</option></text>}
+            </select></div>
+          @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "city", ["label"] = "City", ["required"] = true, ["slot"] = __slot3 })</div>
+        </div>
+        <div class="mb-3">@{ PushWriter(new System.IO.StringWriter()); }Address <span style="color:var(--mu);font-weight:500">- optional, you can add it when booking</span>@{ var __slot4 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "address", ["maxlength"] = "200", ["placeholder"] = "Street, district, building number", ["autocomplete"] = "street-address", ["label"] = __slot4 })</div>
+        <div class="row g-3 mb-2">
+          <div class="col-6">@{ PushWriter(new System.IO.StringWriter()); }
+            <div style="position:relative"><i class="bi bi-eye-slash" data-toggle-password="password" role="button" tabindex="0" aria-label="Show password" style="position:absolute;right:15px;top:14px;color:var(--s);cursor:pointer"></i>
+            <input id="password" name="password" type="password" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("password") })" required minlength="8" maxlength="20" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,20}$" title="8–20 characters with upper and lower case letters, a number and a symbol" autocomplete="new-password"></div>
+          @{ var __slot5 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "password", ["label"] = "Password", ["required"] = true, ["slot"] = __slot5 })</div>
+          <div class="col-6">@{ PushWriter(new System.IO.StringWriter()); }
+            <div style="position:relative"><i class="bi bi-check-circle-fill" data-password-match style="position:absolute;right:15px;top:14px;color:var(--ok);display:none"></i>
+            <input id="password_confirmation" name="password_confirmation" type="password" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("password_confirmation") })" required minlength="8" maxlength="20" autocomplete="new-password"></div>
+          @{ var __slot6 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "password_confirmation", ["label"] = "Confirm password", ["required"] = true, ["slot"] = __slot6 })</div>
+        </div>
+        
+        <div class="d-flex align-items-center gap-2 mb-4" data-strength>
+          <div style="flex:1;height:5px;background:#EAEEF3;border-radius:3px"></div>
+          <div style="flex:1;height:5px;background:#EAEEF3;border-radius:3px"></div>
+          <div style="flex:1;height:5px;background:#EAEEF3;border-radius:3px"></div>
+          <div style="flex:1;height:5px;background:#EAEEF3;border-radius:3px"></div>
+          <span style="font-size:12px;font-weight:600;color:var(--ok);margin-left:6px"></span>
+        </div>
+        <div class="mb-4">
+          <label class="d-flex align-items-start gap-2"><input class="form-check-input mt-1" type="checkbox" name="terms" value="1" @(Truthy(old("terms")) ? "checked" : "") required style="width:18px;height:18px;flex-shrink:0"><span style="font-size:13.5px;line-height:1.55">I agree to the <u>Terms of Service</u> and the <u>Privacy Policy</u>, and I consent to TruckLink storing photos of my items for the purpose of measurement.</span></label>
+          @if (errors.Has("terms")) { var message = errors.First("terms");<text><div class="err"><i class="bi bi-exclamation-circle-fill"></i> @(message)</div></text>}
+        </div>
+        <button type="submit" class="btn btn-tl b-xl w-100">Create account <i class="bi bi-arrow-right"></i></button>
+        <div class="al a-in mt-4" style="font-size:13px;padding:13px 15px"><i class="bi bi-envelope-check-fill" style="font-size:16px"></i><div>We will send a verification link to your email and an OTP to your phone to activate the account.</div></div>
+      </form>
+    </div>
+}
+
+@section Scripts {
+@await Html.PartialAsync("~/Views/Auth/Partials/PasswordToggle.cshtml")
+<script>
+  
+  (function () {
+    var pw = document.getElementById('password'), confirm = document.getElementById('password_confirmation');
+    var meter = document.querySelector('[data-strength]'), bars = meter.querySelectorAll('div'), word = meter.querySelector('span');
+    var tick = document.querySelector('[data-password-match]');
+    function update() {
+      var v = pw.value;
+      var met = [v.length >= 8, /[a-z]/.test(v) && /[A-Z]/.test(v), /\d/.test(v), /[^A-Za-z\d]/.test(v)].filter(Boolean).length;
+      var colour = met >= 3 ? 'var(--ok)' : 'var(--wn)';
+      bars.forEach(function (bar, i) { bar.style.background = i < met && v ? colour : '#EAEEF3'; });
+      word.textContent = v ? ['Weak', 'Weak', 'Fair', 'Good', 'Strong'][met] : '';
+      word.style.color = colour;
+      tick.style.display = v && confirm.value === v ? '' : 'none';
+    }
+    pw.addEventListener('input', update);
+    confirm.addEventListener('input', update);
+    update();
+  })();
+</script>
+}

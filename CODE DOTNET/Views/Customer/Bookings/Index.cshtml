@@ -1,0 +1,51 @@
+
+@{ Layout = "~/Views/Shared/_CustomerLayout.cshtml"; }
+@{
+    dynamic bookings = ViewData["bookings"];
+    dynamic counts = ViewData["counts"];
+    dynamic filter = ViewData["filter"];
+    dynamic oldestFirst = ViewData["oldestFirst"];
+}
+
+
+
+
+
+@{ ViewData["title"] = "My Bookings"; }
+
+@{
+dynamic active = At(counts, "pending") + At(counts, "accepted") + At(counts, "in-progress");
+dynamic onTheRoad = At(At(TruckLink.Controllers.Customer.BookingController.FILTERS, "in-progress"), 1);
+dynamic link =  (Func<dynamic, dynamic>)((query) => route("customer.bookings.index", ArrayFilter(ArrayMerge(Only(request(), "status", "sort"), query))));
+}
+
+@section Content {
+    @if (Truthy(session("status"))) {<text>
+    <div class="al a-ok mb-3"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div>@(session("status"))</div></div>
+    </text>}
+    <div class="page-head"><div><h1 class="h-page">My Bookings</h1><p class="h-sub">@(active) active · @(At(counts, "all")) @(Plural("booking", At(counts, "all"))) in total</p></div><a class="btn btn-tl b-md" href="@(route("customer.bookings.create"))"><i class="bi bi-plus-lg"></i> New Booking</a></div>
+    <div class="d-flex gap-2 mb-3 align-items-center">
+      @foreach (var (key, __v15) in Pairs((object?)(TruckLink.Controllers.Customer.BookingController.FILTERS))) {
+dynamic label = At(__v15, 0);<text>
+      <a class="@Cls(new Dictionary<string, object?> { ["0"] = "chip text-decoration-none", ["chip-on"] = filter == key })" href="@(link(new Dictionary<string, object?> { ["status"] = key == "all" ? null : key, ["page"] = null }))">@if (key == "pending") {<text><i class="bi bi-hourglass-split"></i> </text>}@(label) <b>@(At(counts, key))</b></a>
+      </text>}
+      <div class="ms-auto d-flex gap-2">
+        <a class="chip text-decoration-none" href="@(link(new Dictionary<string, object?> { ["sort"] = oldestFirst ? null : "oldest", ["page"] = null }))"><i class="bi bi-sort-down"></i> @(oldestFirst ? "Oldest first" : "Newest first")</a>
+      </div>
+    </div>
+    <div class="card-tl" style="overflow:hidden">
+      <table class="tbl">
+        <thead><tr><th>Booking</th><th>Route</th><th>Pickup</th><th>Volume</th><th>Vehicle</th><th>Total</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          @if (!IsEmpty(bookings)) {<text>
+@foreach (var booking in bookings) {<text>
+          <tr><td><div class="mono-d" style="font-weight:600">@(booking.Reference)</div><div class="kv">@(Ago(booking.CreatedAt))</div></td><td>@(booking.PickupCity) → @(booking.DropoffCity)</td><td>@(Format(booking.PickupDatetime, "d M, H:i"))</td><td class="mono-d">@(NumberFormat(booking.TotalVolumeM3, 2)) m³</td><td>@if (Truthy(booking.RecommendedVehicleType)) {<text>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = booking.RecommendedVehicleType })</text>}</td><td style="font-weight:700">@(Sar(booking.TotalAmount)) SAR</td><td>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = booking.BookingStatus })</td><td style="text-align:right">@if (Truthy(InArray(booking.BookingStatus, onTheRoad, true))) {<text><a class="btn btn-tl b-sm" href="@(route("customer.bookings.show", booking))#tracking">Track</a></text>} else {<text><a class="btn btn-out b-sm" href="@(route("customer.bookings.show", booking))">View</a></text>}</td></tr>
+          </text>}
+</text>} else {<text>
+          <tr><td colspan="8" class="kv">@if (filter == "all") {<text>You have no bookings yet. <a href="@(route("customer.bookings.create"))" class="text-decoration-none"><b style="color:var(--p)">Create your first booking</b></a> and we size your move from a few photos.</text>} else {<text> No @(Strtolower(At(At(TruckLink.Controllers.Customer.BookingController.FILTERS, filter), 0))) bookings.</text>}</td></tr>
+          </text>}
+        </tbody>
+      </table>
+      @await Html.PartialAsync("~/Views/Shared/_Pager.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["paginator"] = bookings, ["label"] = Plural("booking", Total(bookings)) }))
+    </div>
+}

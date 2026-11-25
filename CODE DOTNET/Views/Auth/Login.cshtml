@@ -1,0 +1,44 @@
+
+@{ Layout = "~/Views/Shared/_AuthLayout.cshtml"; }
+
+
+
+@{ ViewData["title"] = "Sign in"; }
+@{ ViewData["panel_title"] = "Welcome back."; }
+@{ ViewData["panel_text"] = "Track a move in progress, extend your storage, or start a new booking in a few minutes."; }
+
+@section Content {
+    @{ dynamic wrong = errors.Has("credentials"); }
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:56px">
+      <form method="POST" action="@(route("login"))" style="width:404px">
+        @Html.AntiForgeryToken()
+        <h2 class="ff" style="font-size:30px;font-weight:800;color:var(--pd);margin:0 0 6px">Sign in</h2>
+        <p class="kv mb-4">New to TruckLink? <a href="@(route("register"))" class="text-decoration-none"><b style="color:var(--p)">Create an account</b></a></p>
+        @if (Truthy(wrong)) {<text>
+        <div class="al a-dg mb-3" style="font-size:13px;padding:13px 15px" role="alert"><i class="bi bi-exclamation-octagon-fill" style="font-size:16px"></i><div>@(errors.First("credentials"))</div></div>
+        </text>} else if (Truthy(session("status"))) {<text>
+        <div class="al a-ok mb-3" style="font-size:13px;padding:13px 15px" role="status"><i class="bi bi-check-circle-fill" style="font-size:16px"></i><div>@(session("status"))</div></div>
+        </text>}
+        <div class="mb-3">@{ PushWriter(new System.IO.StringWriter()); }
+          <div style="position:relative"><i class="bi bi-envelope" style="position:absolute;left:15px;top:14px;color:var(--s)"></i>
+          <input id="login" name="login" type="text" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = wrong || errors.Has("login") })" style="padding-left:43px" value="@(old("login"))" required maxlength="100" autocomplete="username" @Html.Raw((!old("login") ? " autofocus " : ""))></div>
+        @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "login", ["label"] = "Email or phone number", ["slot"] = __slot1 })</div>
+        <div class="mb-3">@{ PushWriter(new System.IO.StringWriter()); }
+          <div style="position:relative"><i class="bi bi-lock" style="position:absolute;left:15px;top:14px;color:var(--s)"></i>
+          <i class="bi bi-eye-slash" data-toggle-password="password" role="button" tabindex="0" aria-label="Show password" style="position:absolute;right:15px;top:14px;color:var(--s);cursor:pointer"></i>
+          <input id="password" name="password" type="password" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = wrong || errors.Has("password") })" style="padding-left:43px;padding-right:43px" required autocomplete="current-password" @Html.Raw((Truthy(old("login")) ? " autofocus " : ""))></div>
+        @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "password", ["label"] = "Password", ["slot"] = __slot2 })</div>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <label class="d-flex align-items-center gap-2"><input class="form-check-input" type="checkbox" name="remember" value="1" @(!old("login") || old("remember") ? "checked" : "") style="margin:0;width:17px;height:17px"><span style="font-size:13.5px">Keep me signed in</span></label>
+          <a href="@(url("password/forgot"))" class="text-decoration-none" style="font-size:13.5px;color:var(--p);font-weight:600">Forgot password?</a>
+        </div>
+        <button type="submit" class="btn btn-tl b-xl w-100">Sign in <i class="bi bi-arrow-right"></i></button>
+        
+        <div class="al a-in mt-4" style="font-size:13px;padding:13px 15px"><i class="bi bi-shield-lock-fill" style="font-size:16px"></i><div>A one-time password is sent to your registered phone after this step.</div></div>
+      </form>
+    </div>
+}
+
+@section Scripts {
+@await Html.PartialAsync("~/Views/Auth/Partials/PasswordToggle.cshtml")
+}

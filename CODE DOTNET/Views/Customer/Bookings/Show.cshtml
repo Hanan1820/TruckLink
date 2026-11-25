@@ -1,0 +1,214 @@
+
+@{ Layout = "~/Views/Shared/_CustomerLayout.cshtml"; }
+@{
+    dynamic booking = ViewData["booking"];
+    dynamic due = ViewData["due"];
+    dynamic ledger = ViewData["ledger"];
+    dynamic unread = ViewData["unread"];
+}
+
+
+
+
+
+@{ ViewData["title"] = booking.Reference; }
+
+@{
+dynamic status = booking.BookingStatus;
+dynamic storage = booking.StorageRequest;
+dynamic lines = booking.BookingServices;
+dynamic hasStorage = Contains(lines,  (Func<dynamic, dynamic>)((l) => l.Service.ServiceType == "Storage"));
+dynamic extension = First(lines,  (Func<dynamic, dynamic>)((l) => l.Service.ServiceType == "Storage" && l.Service.PricingUnit != "first 7 days"));
+dynamic volume = (double)booking.TotalVolumeM3;
+dynamic weight = Sum(booking.Items,  (Func<dynamic, dynamic>)((i) => (double)i.EstimatedWeightKg));
+dynamic pickup = booking.PickupDatetime;
+dynamic delivery = booking.ExpectedDeliveryDatetime;
+dynamic pill = At(new Dictionary<string, object?> { ["Pending"] = new object[] { "bi-hourglass-split", "Pending admin approval" }, ["Accepted"] = new object[] { "bi-check-circle-fill", "Accepted" }, ["Rejected"] = new object[] { "bi-x-circle-fill", "Rejected" }, ["Completed"] = new object[] { "bi-check-circle-fill", "Completed" }, ["Cancelled"] = new object[] { "bi-slash-circle", "Cancelled" } }, status) ?? new object[] { "bi-truck", status };
+dynamic steps = new object[] { new object[] { "Pending", "Request sent", Format(booking.CreatedAt, "d M, H:i") } };
+if (status == "Rejected") {
+SetAt(steps, , new object[] { "Rejected", "Request rejected", booking.RejectionReason });
+}
+else if (status == "Cancelled") {
+SetAt(steps, , new object[] { "Cancelled", "Booking cancelled", "Nothing more will happen on this booking." });
+}
+else {
+SetAt(steps, , new object[] { "Accepted", "Accepted", status == "Pending" ? "Waiting for TruckLink to review your request" : "Vehicle and crew reserved" });
+SetAt(steps, , new object[] { "Picked Up", "Picked up", (status == "Pending" || status == "Accepted" ? "Planned " : "") + Format(pickup, "d M, H:i") });
+SetAt(steps, , new object[] { "In Transit", "In transit", "On the way to " + booking.DropoffCity });
+if (Truthy(hasStorage)) {
+SetAt(steps, , new object[] { "In Storage", "In storage", storage ? storage.Warehouse?.WarehouseName + " · until " + (Format(storage.EndDate, "d M") ?? "release") : "In our warehouse until your release date" });
+}
+SetAt(steps, , new object[] { "Out for Delivery", "Out for delivery", delivery ? "Expected " + Format(delivery, "d M, H:i") : "" });
+SetAt(steps, , new object[] { "Completed", "Delivered", status == "Completed" && delivery ? Format(delivery, "d M, H:i") : "Your items arrive at " + booking.DropoffCity });
+}
+dynamic reached = ArraySearch(status, ArrayColumn(steps, 0), true);
+dynamic span =  (Func<dynamic, dynamic, dynamic>)((units, unit) => units ? units + " " + Plural(At(new Dictionary<string, object?> { ["Daily"] = "day", ["Weekly"] = "week", ["Monthly"] = "month", ["per day"] = "day", ["per week"] = "week", ["per month"] = "month" }, unit) ?? "day", units) : null);
+dynamic paid = Sum(Where(booking.Payments, "payment_status", "Paid"),  (Func<dynamic, dynamic>)((p) => (double)p.Amount));
+dynamic byType =  (Func<dynamic, dynamic>)((type) => Sum(Filter(lines,  (Func<dynamic, dynamic>)((l) => l.Service.ServiceType == type)),  (Func<dynamic, dynamic>)((l) => (double)l.Subtotal)));
+}
+
+@section Content {
+    <div class="crumb"><a href="@(route("customer.bookings.index"))" class="text-reset text-decoration-none">My Bookings</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>@(booking.Reference)</b></div>
+    <div class="d-flex justify-content-between align-items-end mb-4">
+      <div><div class="d-flex align-items-center gap-3"><h1 class="h-page">@(booking.Reference)</h1>@{ PushWriter(new System.IO.StringWriter()); }@(At(pill, 1))@{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = status, ["icon"] = At(pill, 0), ["style"] = "font-size:13px;padding:7px 15px", ["slot"] = __slot1 })</div>
+        <p class="h-sub">Submitted @(Ago(booking.CreatedAt)) · pickup @(Format(pickup, "d M, H:i"))</p></div>
+      <div class="d-flex gap-2">
+        @if (can("update", booking)) {<text>
+        <a class="btn btn-out b-lg" href="@(route("customer.bookings.edit", booking))"><i class="bi bi-pencil"></i> Edit booking</a>
+        </text>}
+        @if (due > 0) {<text>
+        <a class="btn btn-tl b-lg" href="@(route("customer.bookings.pay", booking))" data-modal-open="pay"><i class="bi bi-credit-card"></i> Pay @(Sar(due)) SAR</a>
+        </text>}
+        @if (can("review", booking)) {<text>
+        <a class="btn btn-tl b-lg" href="@(route("customer.bookings.review", booking))" data-modal-open="review"><i class="bi bi-star"></i> Write a review</a>
+        </text>}
+        @if (can("cancel", booking)) {<text>
+        <button type="button" class="btn btn-out-dg b-lg" data-modal-open="cancel-booking"><i class="bi bi-x-circle"></i> Cancel booking</button>
+        </text>}
+      </div>
+    </div>
+    @if (Truthy(session("status"))) {<text>
+    <div class="al a-ok mb-3"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div>@(session("status"))</div></div>
+    </text>}
+    @if (status == "Rejected") {<text>
+    <div class="al a-dg mb-3"><i class="bi bi-x-octagon-fill" style="font-size:19px"></i><div><strong>This request was not accepted.</strong><br>@(booking.RejectionReason)</div></div>
+    </text>}
+    <div class="row g-3">
+      <div class="col-8">
+        <div class="card-tl mb-3" style="padding:24px">
+          <div class="sec-head"><div class="sec-ic"><i class="bi bi-geo-alt"></i></div><div><h2 class="h-card">Route &amp; schedule</h2><p class="kv mb-0">@(Format(pickup, "l, d F Y"))</p></div></div>
+          <div class="row g-4">
+            <div class="col-4"><div class="sum-cap mb-2">Pickup · @(Format(pickup, "H:i"))</div><div style="font-weight:600;font-size:14.5px">@(booking.PickupAddress)</div><div class="kv">@(booking.PickupCity)</div></div>
+            <div class="col-4"><div class="sum-cap mb-2">Drop-off · expected @(delivery && !IsSameDay(delivery, pickup) ? Format(delivery, "d M, H:i") : Format(delivery, "H:i"))</div><div style="font-weight:600;font-size:14.5px">@(booking.DropoffAddress)</div><div class="kv">@(booking.DropoffCity)@if (Truthy(booking.DistanceKm)) {<text> · @(Num(booking.DistanceKm, 0)) km </text>}</div></div>
+            <div class="col-4"><div class="sum-cap mb-2">Notes for the crew</div><div class="kv">@((Truthy(booking.CustomerNotes) ? booking.CustomerNotes : "-"))</div></div>
+          </div>
+        </div>
+        <div class="card-tl mb-3" style="padding:24px">
+          <div class="sec-head"><div class="sec-ic"><i class="bi bi-box-seam"></i></div><div><h2 class="h-card">Items &amp; measurements</h2><p class="kv mb-0">@(Count(booking.Items)) @(Plural("item", Count(booking.Items))) · @(NumberFormat(volume, 2)) m³ · ~@(NumberFormat(weight)) kg</p></div></div>
+          <table class="tbl">
+            <thead><tr><th colspan="2" style="padding-left:0">Item</th><th>Dimensions (L×W×H)</th><th>Volume</th><th>Weight</th><th style="padding-right:0">Confidence</th></tr></thead>
+            <tbody>
+              @foreach (var item in booking.Items) {<text>
+              <tr>
+                <td style="width:74px;padding-left:0;padding-right:0">@await Html.PartialAsync("~/Views/Customer/Booking/Partials/ItemThumb.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["item"] = item, ["small"] = true }))</td>
+                <td><b>@(item.ItemName)</b><div class="kv">@(item.Category?.ShortName) · Qty @(item.Quantity)</div></td>
+                <td class="mono-d">@(item.DimensionsLabel)</td><td class="mono-d">@(NumberFormat(item.EstimatedVolumeM3, 2)) m³</td><td class="mono-d">~@(NumberFormat(item.EstimatedWeightKg)) kg</td>
+                <td style="padding-right:0">@{ PushWriter(new System.IO.StringWriter()); }@(Num(item.AiConfidenceScore, 0))%@{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = "Measured", ["slot"] = __slot2 })</td>
+              </tr>
+              </text>}
+            </tbody>
+          </table>
+        </div>
+        <div class="card-tl" style="padding:24px">
+          <div class="sec-head"><div class="sec-ic"><i class="bi bi-tags"></i></div><div><h2 class="h-card">Services requested</h2><p class="kv mb-0">@(Count(lines) - (extension ? 1 : 0)) @(Plural("service", Count(lines) - (extension ? 1 : 0)))@(hasStorage ? " · includes Premium Storage" : "")</p></div></div>
+          <table class="tbl">
+            <tbody>
+              @foreach (var line in lines) {<text>
+              @{
+dynamic service = line.Service;
+}
+              @if (service.ServiceType == "Transport") {<text>
+              <tr><td style="padding-left:0"><b>@(service.ServiceName) - @(booking.RecommendedVehicleType)</b><div class="kv">Transport · @(service.PricingUnit)</div></td><td style="text-align:right;padding-right:0;font-weight:700">@(Sar(line.Subtotal)) SAR</td></tr>
+              </text>} else if (service.ServiceType == "Value-Added") {<text>
+              <tr><td style="padding-left:0"><b>@(service.ServiceName)</b> <span class="kv">× @(line.Quantity)</span><div class="kv">Value-added · @(service.PricingUnit)</div></td><td style="text-align:right;padding-right:0;font-weight:700">@(Sar(line.Subtotal)) SAR</td></tr>
+              </text>} else if (service.PricingUnit == "first 7 days") {<text>
+              <tr><td style="padding-left:0"><b>Premium Storage</b> <span class="pill p-ok ms-2" style="font-size:11px">7 days free</span><div class="kv">Storage@(extension ? " · " + span(extension.Quantity, extension.Service.PricingUnit) + " after the free week" : " · within the free week")</div></td><td style="text-align:right;padding-right:0;font-weight:700">@if (Truthy(extension)) {<text>@(Sar(extension.Subtotal)) SAR </text>} else {<text><span style="color:var(--ok)">Free</span></text>}</td></tr>
+              </text>}
+              </text>}
+            </tbody>
+          </table>
+        </div>
+        @if (Truthy(booking.Review)) {<text>
+        @{
+dynamic review = booking.Review;
+}
+        <div class="card-tl mt-3" style="padding:24px">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="sec-head"><div class="sec-ic"><i class="bi bi-star"></i></div><div><h2 class="h-card">Your review</h2><p class="kv mb-0">Written @(Format(review.CreatedAt, "d M Y"))</p></div></div>
+            <div class="d-flex gap-2"><a class="ib text-decoration-none" href="@(route("customer.bookings.review", booking))" data-modal-open="review" aria-label="Edit your review"><i class="bi bi-pencil"></i></a><a class="ib ib-dg text-decoration-none" href="@(route("customer.bookings.show", new Dictionary<string, object?> { ["0"] = booking, ["delete-review"] = 1 }))" data-modal-open="delete-review" aria-label="Delete your review"><i class="bi bi-trash3"></i></a></div>
+          </div>
+          <div style="font-size:19px">@for (var i = 1; i <= 5; i++) {<text><i class="bi @(i <= review.Rating ? "bi-star-fill" : "bi-star")" style="color:@(i <= review.Rating ? "#B7791F" : "var(--line2)")"></i></text>}</div>
+          @if (Truthy(review.Comment)) {<text><p class="mt-2 mb-0" style="font-size:14.5px">@(review.Comment)</p></text>}
+        </div>
+        </text>}
+      </div>
+      <div class="col-4">
+        @await Html.PartialAsync("~/Views/Customer/Bookings/Partials/Tracking.cshtml")
+        @if (booking.Vehicle || booking.Driver) {<text>
+        <div class="card-tl mb-3" style="padding:24px">
+          <div class="sum-cap mb-3">Vehicle &amp; driver</div>
+          @if (Truthy(booking.Vehicle)) {<text><div class="sum-row"><span>Vehicle</span><span>@(booking.Vehicle.PlateNumber) · @(booking.Vehicle.VehicleType)</span></div></text>}
+          @if (Truthy(booking.Driver)) {<text><div class="sum-row"><span>Driver</span><span>@(booking.Driver.FullName)</span></div>
+          <div class="sum-row"><span>Phone</span><span>@(booking.Driver.PhoneDisplay)</span></div>
+          <a class="btn btn-out b-md w-100 mt-3" href="@(route("customer.messages.show", booking))"><i class="bi bi-chat-dots"></i> Message @(booking.Driver.FirstName)@if (Truthy(unread)) {<text> <span class="pill p-pend ms-1" style="font-size:11px;padding:3px 9px">@(unread) new</span></text>}</a></text>}
+        </div>
+        </text>}
+        @if (Truthy(hasStorage)) {<text>
+        <div class="card-tl mb-3" style="padding:24px">
+          <div class="d-flex justify-content-between align-items-center mb-3"><div class="sum-cap">Premium Storage</div>@if (Truthy(storage)) {<text>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = storage.StorageStatus })</text>}</div>
+          @if (Truthy(storage)) {<text>
+          <div class="sum-row"><span>Warehouse</span><span>@(storage.Warehouse?.WarehouseName)</span></div>
+          <div class="sum-row"><span>Location</span><span class="mono-d">@(storage.StorageLocation)</span></div>
+          <div class="sum-row"><span>Free until</span><span>@(Format(storage.FreePeriodEndDate, "d M Y"))</span></div>
+          <div class="sum-row"><span>Planned release</span><span>@(Format(storage.EndDate, "d M Y") ?? "-")</span></div>
+          <div class="sum-row"><span>Extension</span><span>@(span(storage.ExtensionUnits, storage.ExtensionType) ?? "None")</span></div>
+          </text>} else {<text>
+          <div class="kv">Your storage space is reserved when TruckLink accepts the booking. The first 7 days are free.</div>
+          </text>}
+        </div>
+        </text>}
+        <div class="card-tl summary" style="padding:22px">
+          <div class="sum-cap mb-3">Payment</div>
+          <div class="sum-row"><span>Transport</span><span>@(Sar(byType("Transport"))) SAR</span></div>
+          <div class="sum-row"><span>Value-added services</span><span>@(Sar(byType("Value-Added"))) SAR</span></div>
+          <div class="sum-row" style="border-bottom:1px solid var(--line);padding-bottom:13px"><span>Storage</span><span>@(Sar(byType("Storage"))) SAR</span></div>
+          <div class="tot-box mt-3"><span class="t-l">Total</span><span class="t-v">@(Sar(booking.TotalAmount)) SAR</span></div>
+          @if (status == "Pending") {<text>
+          <div class="al a-in mt-3" style="font-size:13px;padding:12px 14px"><i class="bi bi-info-circle-fill" style="font-size:15px"></i><div>You pay per service <b>after</b> we accept the request. Nothing has been charged yet.</div></div>
+          </text>} else if (IsNotEmpty(ledger) && InArray(status, TruckLink.Support.Services.PaymentLedger.PAYABLE, true)) {<text>
+          <div class="mt-3">
+            @foreach (var row in ledger) {<text>
+            <div class="sum-row"><span>@(At(row, "line").Service.ServiceName)</span><span>@if (At(row, "due") > 0) {<text><span style="color:var(--wn)">@(Sar(At(row, "due"))) SAR due</span></text>} else {<text><span style="color:var(--ok)"><i class="bi bi-check-circle-fill"></i> Paid</span></text>}</span></div>
+            </text>}
+          </div>
+          @if (due > 0) {<text>
+          <a class="btn btn-tl b-md w-100 mt-3" href="@(route("customer.bookings.pay", booking))" data-modal-open="pay"><i class="bi bi-credit-card"></i> Pay @(Sar(due)) SAR</a>
+          </text>} else {<text>
+          <a class="btn btn-out b-md w-100 mt-3" href="@(route("customer.invoices.index"))"><i class="bi bi-receipt"></i> View invoices</a>
+          </text>}
+          </text>} else if (Truthy(IsNotEmpty(Where(booking.Payments, "payment_status", "Refunded")))) {<text>
+          <div class="sum-row mt-2"><span>Refunded</span><span>@(Sar(Sum(Where(booking.Payments, "payment_status", "Refunded"),  (Func<dynamic, dynamic>)((p) => (double)p.Amount)))) SAR</span></div>
+          </text>}
+        </div>
+      </div>
+    </div>
+}
+
+@if (can("cancel", booking)) {<text>
+@section Modals {
+
+@{ PushWriter(new System.IO.StringWriter()); }
+  <form method="POST" action="@(route("customer.bookings.cancel", booking))">
+    @Html.AntiForgeryToken()
+    <div class="m-head d-flex justify-content-between align-items-start">
+      <div class="d-flex gap-3"><div class="sec-ic" style="background:var(--dgb);color:var(--dg)"><i class="bi bi-x-circle-fill"></i></div>
+        <div><h2 class="h-card" id="cancel-booking-title">Cancel this booking?</h2><p class="kv mb-0">@(booking.Reference) · @(booking.PickupCity) → @(booking.DropoffCity) · @(Sar(booking.TotalAmount)) SAR</p></div></div>
+      <i class="bi bi-x-lg" data-modal-close role="button" tabindex="0" aria-label="Close" style="color:var(--mu);font-size:17px;cursor:pointer"></i>
+    </div>
+    <div class="m-body">
+      <div class="al a-wn" style="font-size:13.5px"><i class="bi bi-exclamation-triangle-fill" style="font-size:16px"></i><div>Cancelling releases the vehicle and crew reserved for <b>@(Format(pickup, "d M, H:i"))</b> and cannot be undone.@if (Truthy(paid)) {<text> The services you already paid for are refunded.</text>}</div></div>
+    </div>
+    <div class="m-foot justify-content-end gap-2"><button type="button" class="btn btn-out b-md" data-modal-close>Keep booking</button><button type="submit" class="btn btn-dg b-md"><i class="bi bi-x-circle"></i> Cancel booking</button></div>
+  </form>
+@{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_Modal.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["id"] = "cancel-booking", ["label"] = "cancel-booking-title", ["slot"] = __slot3 }))
+}
+</text>}
+
+@section Modals {
+@if (due > 0) {<text>
+@await Html.PartialAsync("~/Views/Customer/Bookings/Partials/PayModal.cshtml")
+</text>}
+@if (booking.Review || User(auth("customer")).Can("review", booking)) {<text>
+@await Html.PartialAsync("~/Views/Customer/Bookings/Partials/ReviewModal.cshtml")
+</text>}
+}

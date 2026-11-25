@@ -1,0 +1,48 @@
+
+@{ Layout = "~/Views/Shared/_CustomerLayout.cshtml"; }
+@{
+    dynamic counts = ViewData["counts"];
+    dynamic paid = ViewData["paid"];
+    dynamic payments = ViewData["payments"];
+    dynamic services = ViewData["services"];
+    dynamic status = ViewData["status"];
+}
+
+
+
+@{ ViewData["title"] = "Invoices"; }
+
+@{
+dynamic total = (int)Sum(counts);
+dynamic methodIcons = new Dictionary<string, object?> { ["Mada"] = "bi-credit-card-2-front", ["Credit Card"] = "bi-credit-card", ["Apple Pay"] = "bi-apple", ["STC Pay"] = "bi-phone" };
+}
+
+@section Content {
+    <div class="page-head"><div><h1 class="h-page">Invoices</h1><p class="h-sub">@(total) @(Plural("payment", total)) · @(Sar(paid)) SAR paid in total</p></div></div>
+    <div class="d-flex gap-2 mb-3 align-items-center">
+      <a class="@Cls(new Dictionary<string, object?> { ["0"] = "chip text-decoration-none", ["chip-on"] = !status })" href="@(FilterUrl(new Dictionary<string, object?> { ["status"] = null }))">All <b>@(total)</b></a>
+      @foreach (var s in TruckLink.Models.Payment.STATUSES) {<text>
+      <a class="@Cls(new Dictionary<string, object?> { ["0"] = "chip text-decoration-none", ["chip-on"] = status == s })" href="@(FilterUrl(new Dictionary<string, object?> { ["status"] = s }))">@(s) <b>@((int)(At(counts, s) ?? 0))</b></a>
+      </text>}
+    </div>
+    <div class="card-tl" style="overflow:hidden">
+      <table class="tbl">
+        <thead><tr><th>Invoice</th><th>Booking</th><th>Service</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th><th></th></tr></thead>
+        <tbody>
+          @if (!IsEmpty(payments)) {<text>
+@foreach (var payment in payments) {<text>
+          <tr><td><div class="mono-d" style="font-weight:600;white-space:nowrap">@(payment.InvoiceNumber)</div>@if (Truthy(payment.RefNumber)) {<text><div class="kv">Ref @(payment.RefNumber)</div></text>}</td>
+              <td class="mono-d" style="white-space:nowrap"><a class="text-reset text-decoration-none" href="@(route("customer.bookings.show", payment.Booking))">@(payment.Booking.Reference)</a></td>
+              <td>@(At(services, payment.PaymentId))</td><td style="font-weight:700;white-space:nowrap">@(Sar(payment.Amount)) SAR</td>
+              <td><span class="d-flex align-items-center gap-2"><i class="bi @(At(methodIcons, payment.PaymentMethod) ?? "bi-credit-card")" style="color:var(--s)"></i>@(payment.PaymentMethod)</span></td>
+              <td>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = payment.PaymentStatus })</td><td class="kv" style="white-space:nowrap">@(Format(payment.TransactionDate, "d M Y"))</td>
+              <td style="text-align:right">@if (Truthy(InArray(payment.PaymentStatus, new object[] { "Paid", "Refunded" }, true))) {<text><a class="ib text-decoration-none" href="@(route("customer.invoices.download", payment))" target="_blank" rel="noopener" title="Open the invoice" aria-label="Open @(payment.InvoiceNumber) in a new tab"><i class="bi bi-box-arrow-up-right"></i></a></text>} else if (payment.PaymentStatus == "Payment Pending") {<text><a class="btn btn-tl b-sm" href="@(route("customer.bookings.pay", payment.Booking))">Pay</a></text>}</td></tr>
+          </text>}
+</text>} else {<text>
+          <tr><td colspan="8" class="kv">No invoices yet - you pay per service once TruckLink accepts a booking.</td></tr>
+          </text>}
+        </tbody>
+      </table>
+      @await Html.PartialAsync("~/Views/Shared/_Pager.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["paginator"] = payments, ["label"] = Plural("invoice", Total(payments)) }))
+    </div>
+}

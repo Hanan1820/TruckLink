@@ -1,0 +1,157 @@
+
+@{
+    dynamic form = ViewData["form"];
+    dynamic messages = ViewData["messages"];
+    dynamic recordName = ViewData["recordName"];
+}
+
+
+
+
+
+
+
+@section Scripts {
+<script>
+  (function () {
+    var form = document.getElementById(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(form)));
+    var fields = Array.prototype.slice.call(form.querySelectorAll('[data-track]'));
+    var messages = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(messages ?? new object[0]));
+    function control(f) {
+      return f.querySelector('input:not([type=hidden]):not([type=radio]):not([type=checkbox]), textarea, select, [data-sel-input]')
+        || f.querySelector('input[type=radio], input[type=checkbox]');
+    }
+    function value(f) {
+      var checked = f.querySelector('input[type=radio]:checked');
+      if (f.querySelector('input[type=radio]')) return checked ? checked.value : '';
+      var box = control(f);
+      if (box.type === 'checkbox') return box.checked ? '1' : '0';
+      return box.value.trim();
+    }
+    function same(f, a, b) {
+      var fmt = f.dataset.format;
+      if (fmt === 'decimal' || fmt === 'number') return a !== '' && b !== '' && !isNaN(a) && !isNaN(b) ? Number(a) === Number(b) : a === b;
+      if (fmt === 'upper') return a.toUpperCase().replace(/\s+/g, ' ') === b.toUpperCase().replace(/\s+/g, ' ');
+      if (fmt === 'email') return a.toLowerCase() === b.toLowerCase();
+      if (fmt === 'phone') { var d = function (x) { return x.replace(/\D/g, '').replace(/^(00)?966/, '').replace(/^0(?=5)/, ''); }; return d(a) === d(b); }
+      return a === b;
+    }
+    function show(f, v) {
+      var fmt = f.dataset.format;
+      if (f.dataset.display) { var map = JSON.parse(f.dataset.display); if (map[v] !== undefined) return map[v]; }
+      if (v === '') return '-';
+      if (fmt === 'decimal' && !isNaN(v)) return Number(v).toFixed(2);
+      if (fmt === 'number' && !isNaN(v)) return Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 });
+      if (fmt === 'bool') return v === '1' ? 'Yes' : 'No';
+      if (fmt === 'upper') return v.toUpperCase().replace(/\s+/g, ' ');
+      return v;
+    }
+    var loaded = fields.map(value);
+    
+    function problem(f, n) {
+      var el = control(f), name = f.dataset.track, m = messages[name] || {}, v = el && el.validity;
+      if (v && !v.valid && el.type !== 'radio' && el.type !== 'checkbox') {
+        if (v.valueMissing) return { text: m.required || 'The ' + f.dataset.label + ' field is required.' };
+        var numeric = el.type === 'number';
+        if (v.customError) return { text: el.validationMessage };
+        if (v.rangeOverflow) return { text: m.range || m.max || el.validationMessage, range: numeric ? 'max' : null, limit: el.max };
+        if (v.rangeUnderflow) return { text: m.range || m.min || el.validationMessage, range: numeric ? 'min' : null, limit: el.min };
+        if (v.patternMismatch) return { text: m.pattern };
+        if (v.badInput || v.stepMismatch) return { text: m.number || 'Enter a valid number.' };
+        if (v.tooShort || v.tooLong) return { text: m.length || el.validationMessage };
+        if (v.typeMismatch) return { text: m.type || el.validationMessage };
+      }
+      if (f.dataset.serverError && value(f) === loaded[n]) return { text: f.dataset.serverError };
+      return null;
+    }
+    var amber = 'border:1.5px solid var(--wn);background:#FDFBF4';
+    function paint() {
+      var changes = [], problems = [];
+      fields.forEach(function (f, n) {
+        var now = value(f), orig = f.dataset.original, changed = !same(f, now, orig), p = problem(f, n);
+        var box = f.querySelector('.fld, .sel');
+        f.querySelector('[data-chg]').hidden = !changed;
+        if (box) {
+          box.classList.toggle('fld-err', !!p);
+          if (box.dataset.style === undefined) box.dataset.style = box.getAttribute('style') || '';
+          box.setAttribute('style', box.dataset.style + (changed && !p ? (box.dataset.style ? ';' : '') + amber : ''));
+        }
+        var was = f.querySelector('[data-was]'), err = f.querySelector('[data-err]'), hint = f.querySelector('[data-hint]');
+        if (hint) hint.hidden = changed || !!p;
+        was.hidden = !changed || !!p;
+        was.querySelector('.old').textContent = show(f, orig);
+        was.querySelector('.new').textContent = show(f, now);
+        err.hidden = !p;
+        err.querySelector('[data-err-text]').textContent = p ? p.text : '';
+        if (changed) changes.push({ f: f, now: now, p: p });
+        if (p) problems.push({ f: f, now: now, p: p });
+      });
+
+      var unsaved = document.querySelector('[data-unsaved]');
+      unsaved.hidden = !changes.length;
+      unsaved.querySelector('[data-unsaved-text]').textContent = changes.length + ' unsaved change' + (changes.length === 1 ? '' : 's') + '.';
+
+      var list = document.querySelector('[data-changes]'), row = document.querySelector('template[data-diff-row]');
+      
+      list.querySelectorAll(':scope > .diff').forEach(function (d) { d.remove(); });
+      changes.forEach(function (c) {
+        var node = row.content.firstElementChild.cloneNode(true), unit = c.f.dataset.unit;
+        node.querySelector('[data-diff-icon]').className = 'bi ' + c.f.dataset.icon;
+        node.querySelector('[data-diff-icon]').style.color = c.p ? 'var(--dg)' : 'var(--s)';
+        node.querySelector('[data-diff-label]').textContent = c.f.dataset.label;
+        node.querySelector('.old').textContent = show(c.f, c.f.dataset.original);
+        node.querySelector('.new').textContent = show(c.f, c.now) + (unit ? ' ' + unit : '');
+        var note = node.querySelector('[data-diff-note]');
+        if (c.p) {
+          node.querySelector('.new').style.color = 'var(--dg)';
+          note.textContent = c.p.range ? 'Out of allowed range' : c.p.text;
+          note.hidden = false;
+        }
+        list.insertBefore(node, list.querySelector('[data-no-changes]'));
+      });
+      document.querySelector('[data-no-changes]').hidden = changes.length > 0;
+
+      var save = document.querySelector('[data-save]'), blocked = problems.length > 0, idle = !changes.length;
+      save.disabled = blocked || idle;
+      save.classList.toggle('btn-dis', blocked || idle);
+      save.classList.toggle('btn-tl', !blocked && !idle);
+      save.querySelector('i').className = 'bi ' + (blocked ? 'bi-lock-fill' : 'bi-check-lg');
+      save.querySelector('[data-save-text]').textContent = blocked
+        ? 'Fix ' + problems.length + ' error' + (problems.length === 1 ? '' : 's') + ' to save' : save.dataset.label;
+
+      var box = document.querySelector('[data-problems]');
+      box.hidden = !blocked;
+      box.querySelector('[data-problems-title]').textContent = problems.length + (problems.length === 1 ? ' field needs' : ' fields need') + ' attention';
+      var text = box.querySelector('[data-problems-text]');
+      text.innerHTML = '';
+      problems.forEach(function (x, i) {
+        if (i) text.appendChild(document.createTextNode(' '));
+        if (!x.p.range) { text.appendChild(document.createTextNode(x.p.text)); return; }
+        
+        var unit = x.f.dataset.unit ? ' ' + x.f.dataset.unit : '', mono = document.createElement('span');
+        mono.className = 'mono-d';
+        mono.textContent = x.now;
+        text.appendChild(document.createTextNode(x.f.dataset.label + ' '));
+        text.appendChild(mono);
+        text.appendChild(document.createTextNode((x.p.range === 'max' ? ' exceeds the allowed maximum of ' : ' is below the allowed minimum of ')
+          + Number(x.p.limit).toLocaleString('en-US') + unit + ' for a ' + @Html.Raw(System.Text.Json.JsonSerializer.Serialize(recordName ?? "record")) + '.'));
+      });
+
+      var side = document.querySelector('[data-side-effect]');
+      if (side) {
+        var watched = fields.filter(function (f) { return f.dataset.track === side.dataset.field; })[0], sv = value(watched);
+        side.hidden = sv === side.dataset.whenNot || sv === '';
+        side.querySelector('[data-side-value]').textContent = sv;
+        
+        side.classList.toggle('mt-3', blocked);
+        side.classList.toggle('mt-4', !blocked);
+      }
+    }
+    form.addEventListener('input', paint);
+    form.addEventListener('change', paint);
+    
+    form.addEventListener('submit', function (e) { if (!document.querySelector('[data-problems]').hidden) e.preventDefault(); });
+    paint();
+  })();
+</script>
+}

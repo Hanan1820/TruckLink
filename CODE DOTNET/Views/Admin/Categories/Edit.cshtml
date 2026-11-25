@@ -1,0 +1,19 @@
+
+@{ Layout = "~/Views/Admin/Crud/FormPage.cshtml"; }
+@{
+    dynamic category = ViewData["category"];
+}
+
+@{
+dynamic page = new Dictionary<string, object?> { ["title"] = "Edit Category · " + category.CategoryName, ["sub"] = "Record <span class=\"mono-d\">" + E(category.Code) + "</span> · matched with " + E(category.RecommendedVehicleType), ["crumbs"] = new object[] { new object[] { "Item Categories", route("admin.item-categories.index") }, new object[] { category.CategoryName, route("admin.item-categories.show", category) } }, ["current"] = "Edit", ["action"] = route("admin.item-categories.update", category), ["cancel"] = route("admin.item-categories.show", category), ["save"] = "Save Changes", ["editing"] = true, ["search"] = new object[] { "Search categories by name or description", route("admin.item-categories.index") }, ["recordName"] = "category" };
+}
+
+
+@section Cards {
+            @await Html.PartialAsync("~/Views/Admin/Categories/_Form.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["editing"] = true }))
+}
+
+@section SideEffect {
+            <div class="al a-in mt-3"><i class="bi bi-info-circle-fill" style="font-size:18px"></i>
+              <div>A new vehicle match applies to items measured from now on; submitted bookings keep the vehicle recommended to them.</div></div>
+}

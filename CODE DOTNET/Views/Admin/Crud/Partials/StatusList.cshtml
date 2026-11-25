@@ -1,0 +1,31 @@
+
+@{
+    dynamic current = ViewData["current"];
+    dynamic icons = ViewData["icons"];
+    dynamic labels = ViewData["labels"];
+    dynamic title = ViewData["title"];
+}
+
+
+            <div class="card-tl p-4 mt-4">
+              <div class="cap mb-3">@(title ?? "Status")</div>
+              <div class="d-flex flex-column gap-2">
+                @foreach (var (status, entry) in Pairs((object?)(icons))) {<text>
+                @{
+dynamic icon = At(entry, 0);
+dynamic colour = At(entry, 1);
+dynamic currentIcon = At(entry, 2) ?? (StrEndsWith(icon, "-fill") || icon == "bi-tools" ? icon : icon + "-fill");
+}
+                @if ((string)status == (string)current) {<text>
+                <div class="pick-on d-flex align-items-center gap-2">
+                  <i class="bi @(currentIcon)" style="color:var(@(colour));font-size:16px"></i>
+                  <span style="font-weight:600;font-size:14px">@(At(labels, status) ?? status)</span>
+                  <span class="kv ms-auto">current</span></div>
+                </text>} else {<text>
+                <div class="pick-dis d-flex align-items-center gap-2">
+                  <i class="bi @(icon)" style="color:var(@(colour));font-size:16px"></i>
+                  <span style="font-size:14px">@(At(labels, status) ?? status)</span></div>
+                </text>}
+                </text>}
+              </div>
+            </div>

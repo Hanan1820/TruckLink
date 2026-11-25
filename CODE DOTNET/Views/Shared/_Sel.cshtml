@@ -1,0 +1,95 @@
+
+@{
+    dynamic name = ViewData["name"];
+    dynamic value = ViewData["value"] ?? null;
+    dynamic options = ViewData["options"] ?? new object[0];
+    dynamic placeholder = ViewData["placeholder"] ?? "Select…";
+    dynamic id = ViewData["id"] ?? null;
+    dynamic open = ViewData["open"] ?? false;
+    dynamic invalid = ViewData["invalid"] ?? false;
+    dynamic slot = ViewData["slot"]; var attributes = new AttributeBag(ViewData);
+}
+
+
+
+
+
+
+
+
+
+@{
+id ??= name;
+dynamic value = (string)value;
+dynamic icon =  (Func<dynamic, dynamic, dynamic>)((o, menu) => !IsEmpty(At(o, "icon")) && (menu || !IsEmpty(At(o, "boxIcon"))) ? "<i class=\"bi " + E(At(o, "icon")) + " me-2\"" + (!IsEmpty(At(o, "colour")) ? " style=\"color:var(" + E(At(o, "colour")) + ")\"" : "") + "></i>" : "");
+}
+<div data-sel>
+  <input type="hidden" name="@(name)" value="@(value)" data-sel-input>
+  <button type="button" id="@(id)" @(Class(attributes, new Dictionary<string, object?> { ["0"] = "sel", ["sel-open"] = open, ["fld-err"] = invalid })) aria-haspopup="listbox" aria-expanded="@(open ? "true" : "false")" aria-controls="@(id)-menu" data-sel-toggle>@if (Truthy(IsSet(At(options, value)))) {<text><span data-sel-label>@Html.Raw(icon(At(options, value), false))@(At(At(options, value), "label"))</span></text>} else {<text><span class="sel-ph" data-sel-label>@(placeholder)</span></text>}<i class="@Cls(new Dictionary<string, object?> { ["0"] = "bi", ["bi-chevron-up"] = open, ["bi-chevron-down"] = !open })" data-sel-chevron></i></button>
+  <div class="menu" id="@(id)-menu" role="listbox" @Html.Raw((!(Truthy(open)) ? " hidden " : ""))>
+    @foreach (var (key, o) in Pairs((object?)(options))) {<text>
+    <div class="@Cls(new Dictionary<string, object?> { ["0"] = "menu-i", ["menu-on"] = (string)key == value })" role="option" tabindex="-1" aria-selected="@((string)key == value ? "true" : "false")" data-value="@(key)" style="cursor:pointer"><template data-sel-box>@Html.Raw(icon(o, false))@(At(o, "label"))</template><span>@Html.Raw(icon(o, true))@(At(o, "label"))</span>@if (!IsEmpty(At(o, "meta"))) {<text><span class="kv" data-sel-meta @Html.Raw(((string)key == value ? " hidden " : ""))>@(At(o, "meta"))</span></text>}<i class="bi bi-check-lg" data-sel-check @Html.Raw((!((string)key == value) ? " hidden " : ""))></i></div>
+    </text>}
+  </div>
+</div>
+
+
+@section Scripts {
+<script>
+  
+  (function () {
+    function parts(root) {
+      return { root: root, input: root.querySelector('[data-sel-input]'), box: root.querySelector('[data-sel-toggle]'),
+               menu: root.querySelector('[role=listbox]'), items: Array.prototype.slice.call(root.querySelectorAll('[role=option]')) };
+    }
+    function setOpen(s, open) {
+      s.menu.hidden = !open;
+      s.box.classList.toggle('sel-open', open);
+      s.box.setAttribute('aria-expanded', open ? 'true' : 'false');
+      var chevron = s.box.querySelector('[data-sel-chevron]');
+      chevron.classList.toggle('bi-chevron-up', open);
+      chevron.classList.toggle('bi-chevron-down', !open);
+      if (open) (s.items.filter(function (i) { return i.classList.contains('menu-on'); })[0] || s.items[0]).focus();
+    }
+    function pick(s, item) {
+      s.items.forEach(function (i) {
+        var on = i === item, meta = i.querySelector('[data-sel-meta]');
+        i.classList.toggle('menu-on', on);
+        i.setAttribute('aria-selected', on ? 'true' : 'false');
+        i.querySelector('[data-sel-check]').hidden = !on;
+        if (meta) meta.hidden = on;
+      });
+      var label = s.box.querySelector('[data-sel-label]');
+      label.classList.toggle('sel-ph', !item);
+      label.innerHTML = item ? item.querySelector('[data-sel-box]').innerHTML : s.root.dataset.placeholder || '';
+      var value = item ? item.dataset.value : '';
+      if (s.input.value !== value) {
+        s.input.value = value;
+        s.input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+    
+    document.querySelectorAll('[data-sel]').forEach(function (root) {
+      var s = parts(root);
+      root.dataset.placeholder = root.querySelector('[data-sel-label]').classList.contains('sel-ph') ? root.querySelector('[data-sel-label]').textContent : '';
+      root.addEventListener('sel:set', function (e) {
+        pick(s, s.items.filter(function (i) { return i.dataset.value === e.detail; })[0] || null);
+      });
+      s.box.addEventListener('click', function () { setOpen(s, s.menu.hidden); });
+      s.box.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); setOpen(s, true); }
+      });
+      s.items.forEach(function (item, n) {
+        item.addEventListener('click', function () { pick(s, item); setOpen(s, false); s.box.focus(); });
+        item.addEventListener('keydown', function (e) {
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); (s.items[n + (e.key === 'ArrowDown' ? 1 : -1)] || item).focus(); }
+          else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); }
+          else if (e.key === 'Escape' || e.key === 'Tab') { setOpen(s, false); if (e.key === 'Escape') s.box.focus(); }
+        });
+      });
+      document.addEventListener('click', function (e) { if (!s.menu.hidden && !root.contains(e.target)) setOpen(s, false); });
+    });
+  })();
+</script>
+}
+

@@ -1,0 +1,11 @@
+
+@{
+    dynamic icon = ViewData["icon"];
+    dynamic colour = ViewData["colour"] ?? "--p";
+    dynamic value = ViewData["value"];
+    dynamic label = ViewData["label"];
+    dynamic slot = ViewData["slot"]; var attributes = new AttributeBag(ViewData);
+}
+
+
+<div @(Class(attributes, new object[] { "card-tl p-3 px-4 d-flex align-items-center gap-3" }))><div class="sec-ic" style="color:var(@(colour))"><i class="bi @(icon)"></i></div><div><div class="kpi-v">@(value)</div><div class="kpi-l">@(label)</div></div></div>

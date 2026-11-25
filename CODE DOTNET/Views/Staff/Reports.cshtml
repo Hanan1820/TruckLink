@@ -1,0 +1,78 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic average = ViewData["average"];
+    dynamic from = ViewData["from"];
+    dynamic hours = ViewData["hours"];
+    dynamic jobs = ViewData["jobs"];
+    dynamic km = ViewData["km"];
+    dynamic period = ViewData["period"];
+    dynamic reviews = ViewData["reviews"];
+    dynamic staff = ViewData["staff"];
+    dynamic to = ViewData["to"];
+}
+
+
+
+
+@{ ViewData["title"] = "My Report"; }
+
+@{
+dynamic range = Format(from, "d M") + " – " + Format(to, "d M Y");
+}
+
+@section Content {
+        <div data-no-print>
+        <div class="crumb"><b>Reports</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">My Report</h1><p class="h-sub">Completed jobs, working hours and customer rating · @(range)</p></div>
+          <button type="button" class="btn btn-tl b-md" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+        </div>
+        <div class="d-flex gap-2 mb-4">
+          @foreach (var (key, label) in Pairs((object?)(TruckLink.Controllers.Admin.ReportController.PERIODS))) {<text>
+          <a class="@Cls(new Dictionary<string, object?> { ["0"] = "chip text-decoration-none", ["chip-on"] = period == key })" href="@(route("staff.reports", new Dictionary<string, object?> { ["period"] = key }))">@(label)</a>
+          </text>}
+        </div>
+        </div>
+        <div class="card-tl p-4">
+          <div class="d-flex justify-content-between align-items-center pb-3 mb-4" style="border-bottom:1px solid var(--line)">
+            <div class="d-flex align-items-center gap-3"><img src="@(asset("img/logo-full-dark.png"))" alt="TruckLink" style="height:30px">
+              <div><h2 class="h-card mb-0">Staff report · @(staff.FullName)</h2><div class="kv">@(staff.JobTitle) · @(staff.Code) · @(range)</div></div></div>
+            <div class="kv" style="text-align:right">Generated @(Format(now(), "d M Y, H:i"))<br>by @(staff.FullName)</div>
+          </div>
+          <div class="row g-3 mb-4">
+            @foreach (var __v18 in new object[] { new object[] { "bi-check2-circle", "--ok", Count(jobs), "Completed jobs" }, new object[] { "bi-clock", "--p", hours + " h", "Working hours on jobs" }, new object[] { "bi-signpost", "--in", NumberFormat(km) + " km", "Distance" }, new object[] { "bi-star-half", "--wn", average ? NumberFormat(average, 1) + " / 5" : "-", "Customer rating" } }) {
+dynamic icon = At(__v18, 0);
+dynamic colour = At(__v18, 1);
+dynamic value = At(__v18, 2);
+dynamic label = At(__v18, 3);<text>
+            <div class="col-3"><div class="tile d-flex align-items-center gap-3"><div class="sec-ic" style="color:var(@(colour))"><i class="bi @(icon)"></i></div><div><div class="k">@(label)</div><div class="v" style="font-size:17px">@(value)</div></div></div></div>
+            </text>}
+          </div>
+          <table class="tbl" style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+            <thead><tr><th>Job</th><th>Date</th><th>Customer</th><th>Route</th><th>Volume</th><th>Rating</th></tr></thead>
+            <tbody>
+              @if (!IsEmpty(jobs)) {<text>
+@foreach (var booking in jobs) {<text>
+              @{
+dynamic review = At(reviews, booking.BookingId) ?? null;
+}
+              <tr><td class="mono-d" style="font-weight:600;white-space:nowrap">@(booking.Reference)</td><td class="kv" style="white-space:nowrap">@(Format(booking.PickupDatetime, "d M Y"))</td>
+                <td>@(booking.Customer.FullName)</td><td>@(booking.PickupCity) → @(booking.DropoffCity)</td><td class="mono-d">@(NumberFormat(booking.TotalVolumeM3, 2)) m³</td>
+                <td style="white-space:nowrap">@if (Truthy(review)) {<text>@for (var i = 1; i <= 5; i++) {<text><i class="bi @(i <= review.Rating ? "bi-star-fill" : "bi-star")" style="color:@(i <= review.Rating ? "#B7791F" : "var(--line2)")"></i></text>} </text>} else {<text><span class="kv">-</span></text>}</td></tr>
+              </text>}
+</text>} else {<text>
+              <tr><td colspan="6" class="kv">No completed jobs in this period.</td></tr>
+              </text>}
+            </tbody>
+          </table>
+          <p class="hint mt-3 mb-0">Working hours count the @(TruckLink.Support.Services.BookingAcceptance.SLOT_HOURS)-hour slot reserved for each completed job.</p>
+        </div>
+}
+
+@section Modals {
+<style media="print">
+  .side, .topbar, [data-no-print] { display: none !important; }
+  .pad { padding: 0 !important; }
+</style>
+}

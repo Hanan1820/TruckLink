@@ -1,0 +1,35 @@
+
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+@await Html.PartialAsync("~/Views/Shared/_Head.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["shellCss"] = "tl-public" }))
+</head>
+<body>
+<div class="tl-page">
+  
+
+  <div class="d-flex flex-column min-vh-100">
+  <div class="d-flex flex-grow-1 auth-split">
+
+<div class="auth-panel" style="width:560px;background:linear-gradient(162deg,#243343 0%,#324355 55%,#3E5269 100%);padding:56px 52px;display:flex;flex-direction:column;justify-content:space-between;flex-shrink:0">
+  <a class="logo-lockup" href="@(url("/"))"><img class="logo-mark" src="@(asset("img/logo-mark-rev.png"))" alt="TruckLink"><img class="logo-word" src="@(asset("img/logo-word-rev.png"))" alt="TruckLink"></a>
+  <div>
+    @await Html.PartialAsync("~/Views/Svg/AuthIllustration.cshtml")
+    <h2 class="ff" style="font-size:34px;font-weight:800;color:#fff;line-height:1.2;margin:0">@(ViewData["panel_title"] ?? (""))</h2>
+    <p style="font-size:15.5px;color:#B4C3D3;line-height:1.65;margin:16px 0 0;max-width:400px">@(ViewData["panel_text"] ?? (""))</p>
+    <div class="d-flex gap-4 mt-4 pt-2">
+      <div class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill" style="color:#7FB79C"></i><span style="font-size:13.5px;color:#C7D3DF">Pay per service</span></div>
+      <div class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill" style="color:#7FB79C"></i><span style="font-size:13.5px;color:#C7D3DF">Own fleet &amp; crews</span></div>
+      <div class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill" style="color:#7FB79C"></i><span style="font-size:13.5px;color:#C7D3DF">7 days free storage</span></div>
+    </div>
+  </div>
+  <div style="font-size:12.5px;color:#7F91A6">&#169; 2026 TruckLink &#183; Al Olaya, Riyadh</div>
+</div>
+    @RenderSection("Content", required: false)
+  </div>
+  </div>
+</div>
+@RenderSection("Modals", required: false)
+@RenderSection("Scripts", required: false)
+</body>
+</html>

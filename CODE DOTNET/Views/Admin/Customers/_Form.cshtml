@@ -1,0 +1,40 @@
+
+@{
+    dynamic customer = ViewData["customer"];
+    dynamic editing = ViewData["editing"];
+}
+
+
+@{
+dynamic cities = config("trucklink.cities");
+}
+            @await Html.PartialAsync("~/Views/Admin/Crud/Partials/AccountCards.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["record"] = customer, ["editing"] = editing, ["who"] = "customer" }))
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-geo-alt"></i></div>
+                <div><h2 class="h-card">Address</h2>
+                     <p class="kv mb-0">Pre-filled as the pickup address when this customer books</p></div></div>
+              <div class="row g-3">
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <div style="position:relative"><i class="bi bi-chevron-down" style="position:absolute;right:15px;top:15px;color:var(--s);font-size:12px;pointer-events:none"></i>
+                  <select id="city" name="city" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("city") })" style="appearance:none" required>
+                    <option value="" disabled @(!old("city", customer.City) ? "selected" : "")>Select a city</option>
+                    @foreach (var city in cities) {<text><option @(old("city", customer.City) == city ? "selected" : "")>@(city)</option></text>}
+                  </select></div>
+                @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-4", ["name"] = "city", ["label"] = "City", ["required"] = true, ["track"] = editing, ["original"] = customer.City, ["icon"] = "bi-geo-alt", ["slot"] = __slot1 }))
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  <input class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = errors.Has("address") })" id="address" name="address" value="@(old("address", customer.Address))" maxlength="200" placeholder="Street, district, building number" autocomplete="off">
+                @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-8", ["name"] = "address", ["label"] = "Address", ["track"] = editing, ["original"] = customer.Address, ["icon"] = "bi-signpost", ["slot"] = __slot2 }))
+              </div>
+            </div>
+
+            <div class="card-tl p-4 mt-4">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-toggle-on"></i></div>
+                <div><h2 class="h-card">Account</h2>
+                     <p class="kv mb-0">Suspended and blocked customers cannot sign in or book</p></div></div>
+              <div class="row g-3">
+                @{ PushWriter(new System.IO.StringWriter()); }
+                  @await Html.PartialAsync("~/Views/Shared/_Sel.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["name"] = "account_status", ["value"] = old("account_status", customer.AccountStatus), ["invalid"] = errors.Has("account_status"), ["options"] = All(MapWithKeys(Collect(TruckLink.Models.Customer.STATUS_ICONS),  (Func<dynamic, dynamic, dynamic>)((i, s) => new Dictionary<string, object?> { [s] = new Dictionary<string, object?> { ["label"] = s, ["icon"] = At(i, 0), ["colour"] = At(i, 1), ["boxIcon"] = s != "Active" } }))) }))
+                @{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_TrackedField.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["class"] = "col-12", ["name"] = "account_status", ["label"] = "Account status", ["required"] = true, ["track"] = editing, ["original"] = customer.AccountStatus, ["icon"] = "bi-toggle-on", ["slot"] = __slot3 }))
+              </div>
+            </div>

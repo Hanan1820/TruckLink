@@ -1,0 +1,22 @@
+
+@{ Layout = "~/Views/Admin/Crud/FormPage.cshtml"; }
+@{
+    dynamic customer = ViewData["customer"];
+    dynamic open = ViewData["open"];
+}
+
+@{
+dynamic page = new Dictionary<string, object?> { ["title"] = "Edit Customer · " + customer.FullName, ["sub"] = "Record <span class=\"mono-d\">" + E(customer.Code) + "</span> · customer since " + Format(customer.CreatedAt, "d M Y"), ["crumbs"] = new object[] { new object[] { "Customers", route("admin.customers.index") }, new object[] { customer.FullName, route("admin.customers.show", customer) } }, ["current"] = "Edit", ["action"] = route("admin.customers.update", customer), ["cancel"] = route("admin.customers.show", customer), ["save"] = "Save Changes", ["editing"] = true, ["search"] = new object[] { "Search customers by name, email, phone or city", route("admin.customers.index") }, ["recordName"] = "customer account" };
+}
+
+
+@section Cards {
+            @await Html.PartialAsync("~/Views/Admin/Customers/_Form.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["editing"] = true }))
+}
+
+@section SideEffect {
+            <div class="al a-wn mt-3" data-side-effect data-field="account_status" data-when-not="Active" hidden><i class="bi bi-exclamation-triangle-fill" style="font-size:18px"></i>
+              <div><b>Side effect of this change</b><div style="margin-top:6px">Setting the account to
+                <b data-side-value></b> signs @(customer.FirstName) out on the next page and stops new bookings.@if (Truthy(open)) {<text>
+                The @(open) @(Plural("booking", open)) in progress @(open == 1 ? "stays" : "stay") as @(open == 1 ? "it is" : "they are").</text>}</div></div></div>
+}

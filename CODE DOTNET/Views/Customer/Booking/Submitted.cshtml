@@ -1,0 +1,57 @@
+
+@{ Layout = "~/Views/Shared/_CustomerLayout.cshtml"; }
+@{
+    dynamic booking = ViewData["booking"];
+    dynamic crewSize = ViewData["crewSize"];
+    dynamic hasStorage = ViewData["hasStorage"];
+    dynamic storageLine = ViewData["storageLine"];
+    dynamic transport = ViewData["transport"];
+}
+
+
+
+@{ ViewData["title"] = "Booking request sent"; }
+
+@{
+dynamic unitWord = new Dictionary<string, object?> { ["per day"] = "day", ["per week"] = "week", ["per month"] = "month" };
+dynamic storageText = storageLine ? "7 free + " + storageLine.Quantity + " " + Plural(At(unitWord, storageLine.Service.PricingUnit) ?? "day", storageLine.Quantity) : "7 days free";
+}
+
+@section Content {
+    <div class="card-tl text-center mb-3" style="padding:52px 40px">
+      @await Html.PartialAsync("~/Views/Svg/SuccessRequestSent.cshtml")
+      <h1 class="h-page mb-2" style="font-size:28px">Your booking request has been sent</h1>
+      <p class="kv mb-1" style="font-size:15px">Reference <b class="mono-d" style="font-size:15px;font-weight:700">@(booking.Reference)</b></p>
+      <p class="kv mb-4" style="max-width:540px;margin:10px auto 0;font-size:14.5px">Our team is reviewing your request and will confirm the vehicle and crew shortly. You will be notified as soon as it is accepted. <b>Nothing has been charged yet.</b></p>
+      <div class="mt-4">@{ PushWriter(new System.IO.StringWriter()); }Pending admin approval@{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = booking.BookingStatus, ["icon"] = "bi-hourglass-split", ["style"] = "font-size:14px;padding:10px 20px", ["slot"] = __slot1 })</div>
+    </div>
+    <div class="row g-3">
+      <div class="col-8">
+        <div class="card-tl" style="padding:26px">
+          <div class="sec-head"><div class="sec-ic"><i class="bi bi-signpost-2"></i></div><div><h2 class="h-card">What happens next</h2><p class="kv mb-0">Four steps between now and your move</p></div></div>
+          <div class="d-flex gap-3 mb-4"><div class="st-n s-now" style="flex-shrink:0">1</div><div><div style="font-weight:700;font-size:15px">Admin reviews your request</div><div class="kv">Usually within 2 hours during working hours. You will get a notification either way.</div></div></div>
+          <div class="d-flex gap-3 mb-4"><div class="st-n s-next" style="flex-shrink:0">2</div><div><div style="font-weight:700;font-size:15px">Vehicle and crew assigned</div><div class="kv">A @(booking.RecommendedVehicleType) and a @(crewSize)-person crew will be reserved for @(Format(booking.PickupDatetime, "d F")) at @(Format(booking.PickupDatetime, "H:i")).</div></div></div>
+          <div class="d-flex gap-3 mb-4"><div class="st-n s-next" style="flex-shrink:0">3</div><div><div style="font-weight:700;font-size:15px">Pay per service</div><div class="kv">You pay only after the request is accepted, service by service.</div></div></div>
+          <div class="d-flex gap-3"><div class="st-n s-next" style="flex-shrink:0">4</div><div><div style="font-weight:700;font-size:15px">Track your move in real time</div><div class="kv">Follow every status change and chat with your driver from My Bookings.</div></div></div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="card-tl summary mb-3" style="padding:24px">
+          <div class="sum-cap mb-3">Summary</div>
+          <div class="sum-row"><span>Service</span><span>@(transport?.ServiceName)</span></div>
+          <div class="sum-row"><span>Route</span><span>@(booking.PickupCity) → @(booking.DropoffCity)</span></div>
+          <div class="sum-row"><span>Pickup</span><span>@(Format(booking.PickupDatetime, "d M, H:i"))</span></div>
+          <div class="sum-row"><span>Items</span><span>@(Count(booking.Items)) · @(NumberFormat(booking.TotalVolumeM3, 2)) m³</span></div>
+          @if (Truthy(hasStorage)) {<text>
+          <div class="sum-row"><span>Vehicle</span><span>@(booking.RecommendedVehicleType)</span></div>
+          <div class="sum-row" style="border-bottom:1px solid var(--line);padding-bottom:14px"><span>Storage</span><span>@(storageText)</span></div>
+          </text>} else {<text>
+          <div class="sum-row" style="border-bottom:1px solid var(--line);padding-bottom:14px"><span>Vehicle</span><span>@(booking.RecommendedVehicleType)</span></div>
+          </text>}
+          <div class="tot-box mt-3"><span class="t-l">Total</span><span class="t-v">@(Sar(booking.TotalAmount)) SAR</span></div>
+        </div>
+        <a class="btn btn-tl b-lg w-100 mb-2" href="@(url("customer/bookings/" + booking.BookingId))"><i class="bi bi-eye"></i> View my booking</a>
+        <a class="btn btn-out b-md w-100" href="@(url("customer/bookings"))">Back to My Bookings</a>
+      </div>
+    </div>
+}

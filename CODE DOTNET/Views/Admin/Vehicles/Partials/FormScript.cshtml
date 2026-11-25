@@ -1,0 +1,42 @@
+
+
+
+@section Scripts {
+<script>
+  (function () {
+    var form = document.getElementById('vehicle-form');
+    var type = form.querySelector('[name=vehicle_type]'), typeSel = type.closest('[data-sel]');
+    var capacity = form.querySelector('[name=capacity_volume_m3]');
+    var radios = form.querySelectorAll('[name=is_temperature_controlled]');
+    var usual = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TruckLink.Models.Vehicle.DEFAULT_CAPACITY));
+    function paintPicks() {
+      radios.forEach(function (r) {
+        var card = r.closest('[data-pick]');
+        card.classList.toggle('pick-on', r.checked);
+        card.classList.toggle('pick', !r.checked);
+        card.querySelector('.ic-box').classList.toggle('ic-on', r.checked);
+        card.querySelector('[data-pick-check]').hidden = !r.checked;
+      });
+    }
+    function setTemp(yes) {
+      var radio = form.querySelector('[name=is_temperature_controlled][value="' + (yes ? 1 : 0) + '"]');
+      if (!radio.checked) { radio.checked = true; paintPicks(); radio.dispatchEvent(new Event('change', { bubbles: true })); }
+    }
+    type.addEventListener('change', function () {
+      if (type.value) setTemp(type.value === 'Temp-Controlled');
+      if (type.value && capacity.value === '') {
+        capacity.value = Number(usual[type.value]).toFixed(2);
+        capacity.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+    radios.forEach(function (r) {
+      r.addEventListener('change', function () {
+        paintPicks();
+        var yes = r.value === '1' && r.checked;
+        if (yes && type.value !== 'Temp-Controlled') typeSel.dispatchEvent(new CustomEvent('sel:set', { detail: 'Temp-Controlled' }));
+        if (!yes && r.checked && type.value === 'Temp-Controlled') typeSel.dispatchEvent(new CustomEvent('sel:set', { detail: '' }));
+      });
+    });
+  })();
+</script>
+}

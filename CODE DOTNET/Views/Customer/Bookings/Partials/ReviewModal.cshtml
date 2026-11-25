@@ -1,0 +1,74 @@
+
+@{
+    dynamic booking = ViewData["booking"];
+}
+
+
+@{
+dynamic review = booking.Review;
+dynamic re = errors.GetBag("review");
+dynamic rating = (int)old("rating", review?.Rating ?? 0);
+}
+@{ PushWriter(new System.IO.StringWriter()); }
+  <form method="POST" action="@(review ? route("customer.bookings.review.update", booking) : route("customer.bookings.review.store", booking))">
+    @Html.AntiForgeryToken() @if (Truthy(review)) {<text> <input type="hidden" name="_method" value="PUT">  </text>}
+    <div class="m-head d-flex justify-content-between align-items-start">
+      <div class="d-flex gap-3"><div class="sec-ic"><i class="bi bi-star-fill"></i></div>
+        <div><h2 class="h-card" id="review-title">@(review ? "Edit your review" : "How did the move go?")</h2><p class="kv mb-0">@(booking.Reference) · @(booking.PickupCity) → @(booking.DropoffCity)@if (Truthy(booking.Driver)) {<text> · driver @(booking.Driver.FullName)</text>}</p></div></div>
+      <i class="bi bi-x-lg" data-modal-close role="button" tabindex="0" aria-label="Close" style="color:var(--mu);font-size:17px;cursor:pointer"></i>
+    </div>
+    <div class="m-body">
+      <label class="lbl">Your rating <span class="req">*</span></label>
+      <input type="hidden" name="rating" value="@((Truthy(rating) ? rating : ""))" data-rating>
+      <div class="d-flex gap-2 mb-1" role="radiogroup" aria-label="Rating">
+        @for (var i = 1; i <= 5; i++) {<text>
+        <button type="button" class="bg-transparent border-0 p-0" role="radio" aria-checked="@(i == rating ? "true" : "false")" aria-label="@(i) @(Plural("star", i))" data-star="@(i)" style="font-size:30px;line-height:1">
+          <i class="bi @(i <= rating ? "bi-star-fill" : "bi-star")" style="color:@(i <= rating ? "#B7791F" : "var(--line2)")"></i></button>
+        </text>}
+      </div>
+      @if (Truthy(re.Has("rating"))) {<text><div class="err mb-3"><i class="bi bi-exclamation-circle-fill"></i> @(First(re, "rating"))</div></text>} else {<text><div class="hint mb-3">Tap a star - 5 is excellent.</div></text>}
+      @{ PushWriter(new System.IO.StringWriter()); }
+        <textarea id="comment" name="comment" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = re.Has("comment") })" rows="4" maxlength="500" placeholder="What went well, and what could be better?">@(old("comment", review?.Comment))</textarea>
+      @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "comment", ["label"] = "Your review", ["bag"] = "review", ["hint"] = "Optional · 500 characters at most. Other customers can read it.", ["slot"] = __slot2 })
+    </div>
+    <div class="m-foot justify-content-end gap-2"><button type="button" class="btn btn-out b-md" data-modal-close>Cancel</button><button type="submit" class="btn btn-tl b-md"><i class="bi bi-send"></i> @(review ? "Save review" : "Publish review")</button></div>
+  </form>
+@{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_Modal.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["id"] = "review", ["width"] = "680", ["padding"] = "46", ["open"] = Any(re) || Boolean(request(), "review"), ["label"] = "review-title", ["slot"] = __slot1 }))
+
+@if (Truthy(review)) {<text>
+@{ PushWriter(new System.IO.StringWriter()); }
+  <form method="POST" action="@(route("customer.bookings.review.destroy", booking))">
+    @Html.AntiForgeryToken() <input type="hidden" name="_method" value="DELETE"> 
+    <div class="m-head d-flex justify-content-between align-items-start">
+      <div class="d-flex gap-3"><div class="sec-ic" style="background:var(--dgb);color:var(--dg)"><i class="bi bi-trash3-fill"></i></div>
+        <div><h2 class="h-card" id="delete-review-title">Delete your review?</h2><p class="kv mb-0">@(booking.Reference) · you can write a new one afterwards</p></div></div>
+      <i class="bi bi-x-lg" data-modal-close role="button" tabindex="0" aria-label="Close" style="color:var(--mu);font-size:17px;cursor:pointer"></i>
+    </div>
+    <div class="m-foot justify-content-end gap-2"><button type="button" class="btn btn-out b-md" data-modal-close>Keep it</button><button type="submit" class="btn btn-dg b-md"><i class="bi bi-trash3"></i> Delete review</button></div>
+  </form>
+@{ var __slot3 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_Modal.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["id"] = "delete-review", ["width"] = "680", ["padding"] = "46", ["open"] = Boolean(request(), "delete-review"), ["label"] = "delete-review-title", ["slot"] = __slot3 }))
+</text>}
+
+@section Scripts {
+<script>
+  
+  (function () {
+    var input = document.querySelector('[data-rating]');
+    if (!input) return;
+    var stars = document.querySelectorAll('[data-star]');
+    function paint(n) {
+      stars.forEach(function (b) {
+        var on = Number(b.dataset.star) <= n, icon = b.querySelector('i');
+        icon.className = 'bi ' + (on ? 'bi-star-fill' : 'bi-star');
+        icon.style.color = on ? '#B7791F' : 'var(--line2)';
+        b.setAttribute('aria-checked', Number(b.dataset.star) === n ? 'true' : 'false');
+      });
+    }
+    stars.forEach(function (b) {
+      b.addEventListener('click', function () { input.value = b.dataset.star; paint(Number(b.dataset.star)); });
+      b.addEventListener('mouseenter', function () { paint(Number(b.dataset.star)); });
+      b.addEventListener('mouseleave', function () { paint(Number(input.value || 0)); });
+    });
+  })();
+</script>
+}

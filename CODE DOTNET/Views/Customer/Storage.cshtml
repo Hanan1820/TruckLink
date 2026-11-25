@@ -1,0 +1,80 @@
+
+@{ Layout = "~/Views/Shared/_CustomerLayout.cshtml"; }
+@{
+    dynamic changeable = ViewData["changeable"];
+    dynamic due = ViewData["due"];
+    dynamic earliest = ViewData["earliest"];
+    dynamic storages = ViewData["storages"];
+}
+
+
+
+
+@{ ViewData["title"] = "Storage"; }
+
+@{
+dynamic unitWord = new Dictionary<string, object?> { ["Daily"] = "day", ["Weekly"] = "week", ["Monthly"] = "month" };
+}
+
+@section Content {
+    @if (Truthy(session("status"))) {<text>
+    <div class="al a-ok mb-3"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div>@(session("status"))</div></div>
+    </text>}
+    <div class="page-head"><div><h1 class="h-page">Storage</h1><p class="h-sub">Premium Storage on your bookings - the first 7 days are always free</p></div></div>
+    @if (!IsEmpty(storages)) {<text>
+@foreach (var storage in storages) {<text>
+    @{
+dynamic booking = storage.Booking;
+dynamic open = At(changeable, storage.StorageId);
+dynamic editing = errors.Has("end_date") && (int)old("storage_id") == storage.StorageId;
+}
+    <div class="card-tl mb-3" style="padding:26px;@(open ? "border:2px solid var(--p)" : "")">
+      <div class="d-flex align-items-start gap-3 mb-4">
+        @await Html.PartialAsync("~/Views/Svg/PremiumStorageBadge.cshtml")
+        <div style="flex:1"><div class="d-flex align-items-center gap-2 mb-1"><span style="font-weight:800;font-size:18px" class="ff">Premium Storage</span>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = storage.StorageStatus })</div>
+          <p class="kv mb-0"><a class="text-reset" href="@(route("customer.bookings.show", booking))"><span class="mono-d">@(booking.Reference)</span></a> · @(booking.PickupCity) → @(booking.DropoffCity)</p></div>
+        @if (At(due, storage.StorageId) > 0) {<text>
+        <a class="btn btn-tl b-md" href="@(route("customer.bookings.pay", booking))"><i class="bi bi-credit-card"></i> Pay @(Sar(At(due, storage.StorageId))) SAR</a>
+        </text>}
+      </div>
+      <div class="row g-3 mb-3">
+        <div class="col-6"><div class="pick d-flex align-items-center gap-3"><div class="ic-box"><i class="bi bi-buildings-fill"></i></div>
+          <div><div style="font-weight:700;font-size:15px">@(storage.Warehouse.WarehouseName)</div><div class="kv">@(storage.Warehouse.Address), @(storage.Warehouse.City) · @(storage.Warehouse.OpeningHours)</div></div></div></div>
+        <div class="col-6"><div class="pick d-flex align-items-center gap-3"><div class="ic-box"><i class="bi bi-grid-3x3"></i></div>
+          <div><div style="font-weight:700;font-size:15px" class="mono-d">@(storage.StorageLocation)</div><div class="kv">Your storage bay</div></div></div></div>
+      </div>
+      <form method="POST" action="@(route("customer.storage.update", storage))" class="row g-3 align-items-start">
+        @Html.AntiForgeryToken() <input type="hidden" name="_method" value="PUT"> 
+        <input type="hidden" name="storage_id" value="@(storage.StorageId)">
+        <div class="col-3"><label class="lbl">Storage start</label><input class="fld fld-dis" value="@(Format(storage.StartDate, "d M Y"))" disabled></div>
+        <div class="col-3"><label class="lbl">Free period ends</label><input class="fld fld-dis" value="@(Format(storage.FreePeriodEndDate, "d M Y"))" disabled></div>
+        <div class="col-3">
+          <label class="lbl" for="end_date_@(storage.StorageId)">Planned release</label>
+          @if (Truthy(open)) {<text>
+          <input class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = editing })" id="end_date_@(storage.StorageId)" name="end_date" type="date" required
+                 min="@(ToDateString(At(earliest, storage.StorageId)))" max="@(ToDateString(AddYear(Copy(storage.StartDate))))"
+                 value="@(editing ? old("end_date") : ToDateString(storage.EndDate))">
+          @if (Truthy(editing)) {<text><div class="err"><i class="bi bi-exclamation-circle-fill"></i> @(errors.First("end_date"))</div></text>}
+          </text>} else {<text>
+          <input class="fld fld-dis" value="@(Format(storage.EndDate, "d M Y") ?? "-")" disabled>
+          </text>}
+        </div>
+        <div class="col-3"><label class="lbl">Extension</label><input class="fld fld-dis" value="@(storage.ExtensionType ? storage.ExtensionUnits + " " + Plural(At(unitWord, storage.ExtensionType), storage.ExtensionUnits) + " · " + Sar(storage.StorageFee) + " SAR" : "None - free")" disabled></div>
+        @if (Truthy(open)) {<text>
+        <div class="col-12 d-flex align-items-center gap-3">
+          <div class="al a-in mb-0" style="font-size:13.5px;flex:1"><i class="bi bi-calendar-check-fill" style="font-size:16px"></i><div>Move the release later to <b>extend</b>, or earlier to <b>bring it forward</b>. Extra days are billed as the cheapest of daily, weekly or monthly.</div></div>
+          <button type="submit" class="btn btn-tl b-md"><i class="bi bi-check-lg"></i> Update release date</button>
+        </div>
+        </text>}
+      </form>
+    </div>
+    </text>}
+</text>} else {<text>
+    <div class="card-tl text-center" style="padding:48px">
+      <div class="mx-auto mb-3" style="width:fit-content">@await Html.PartialAsync("~/Views/Svg/PremiumStorageBadge.cshtml")</div>
+      <h2 class="h-card">No storage yet</h2>
+      <p class="kv">Add Premium Storage in step 5 of a booking - we keep your items safe for 7 days free.</p>
+      <a class="btn btn-tl b-md" href="@(route("customer.bookings.create"))"><i class="bi bi-plus-lg"></i> New Booking</a>
+    </div>
+    </text>}
+}

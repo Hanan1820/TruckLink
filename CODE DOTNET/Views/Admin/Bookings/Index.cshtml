@@ -1,0 +1,95 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic bookings = ViewData["bookings"];
+    dynamic chipCounts = ViewData["chipCounts"];
+    dynamic cities = ViewData["cities"];
+    dynamic filters = ViewData["filters"];
+    dynamic months = ViewData["months"];
+    dynamic newest = ViewData["newest"];
+    dynamic total = ViewData["total"];
+}
+
+
+
+@{ ViewData["title"] = "Bookings"; }
+
+@{
+dynamic chips = TruckLink.Controllers.Admin.BookingController.CHIPS;
+dynamic link =  (Func<dynamic, dynamic>)((query) => route("admin.bookings.index", ArrayFilter(ArrayMerge(Only(request(), "status", "q", "month", "city", "sort"), query),  (Func<dynamic, dynamic>)((v) => v != null && v != ""))));
+dynamic monthLabel =  (Func<dynamic, dynamic>)((m) => m ? Format(Carbon.CreateFromFormat("Y-m", m), "M Y") : "Any month");
+dynamic label = At(filters, "status") == "pending" ? "pending requests" : (At(filters, "status") ? Strtolower(At(At(chips, At(filters, "status")), 0)) + " bookings" : "bookings");
+}
+
+@section Content {
+        @if (Truthy(session("status"))) {<text>
+        <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill" style="font-size:20px"></i><div>@(session("status"))</div></div>
+        </text>}
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>Bookings</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-4">
+          <div><h1 class="h-page">Bookings</h1><p class="h-sub">@(At(chipCounts, "pending")) @(Plural("request", At(chipCounts, "pending"))) awaiting review · @(total) @(Plural("booking", total)) in total</p></div>
+          <div class="d-flex gap-2"><a class="btn btn-out b-md" href="@(route("admin.bookings.export", Query(request())))" data-export><i class="bi bi-download"></i> Export</a></div>
+        </div>
+        <div class="d-flex gap-2 mb-3 align-items-center">
+          @foreach (var (key, __v3) in Pairs((object?)(chips))) {
+dynamic chipLabel = At(__v3, 0);<text>
+          <a class="@Cls(new Dictionary<string, object?> { ["0"] = "chip text-decoration-none", ["chip-on"] = At(filters, "status") == key })" href="@(link(new Dictionary<string, object?> { ["status"] = key, ["q"] = null, ["page"] = null }))">@if (key == "pending") {<text><i class="bi bi-hourglass-split"></i> </text>}@(chipLabel) <b>@(At(chipCounts, key))</b></a>
+          </text>}
+          <div class="ms-auto d-flex gap-2">
+            
+            <div class="position-relative d-flex">
+              <button type="button" class="chip" data-menu-toggle="month-menu" aria-haspopup="true" aria-expanded="false"><i class="bi bi-calendar3"></i> @(monthLabel(At(filters, "month")))</button>
+              <div class="menu" id="month-menu" hidden style="position:absolute;right:0;top:calc(100% + 8px);border-top:1.5px solid var(--p);border-radius:9px;white-space:nowrap;z-index:20">
+                <a class="@Cls(new Dictionary<string, object?> { ["0"] = "menu-i text-reset text-decoration-none", ["menu-on"] = !At(filters, "month") })" href="@(link(new Dictionary<string, object?> { ["month"] = null, ["page"] = null }))"><span>Any month</span></a>
+                @foreach (var month in months) {<text>
+                <a class="@Cls(new Dictionary<string, object?> { ["0"] = "menu-i text-reset text-decoration-none", ["menu-on"] = At(filters, "month") == month })" href="@(link(new Dictionary<string, object?> { ["month"] = month, ["page"] = null }))"><span>@(monthLabel(month))</span></a>
+                </text>}
+              </div>
+            </div>
+            <div class="position-relative d-flex">
+              <button type="button" class="chip" data-menu-toggle="city-menu" aria-haspopup="true" aria-expanded="false"><i class="bi bi-funnel"></i> @(At(filters, "city") ?? "All cities")</button>
+              <div class="menu" id="city-menu" hidden style="position:absolute;right:0;top:calc(100% + 8px);border-top:1.5px solid var(--p);border-radius:9px;white-space:nowrap;z-index:20">
+                <a class="@Cls(new Dictionary<string, object?> { ["0"] = "menu-i text-reset text-decoration-none", ["menu-on"] = !At(filters, "city") })" href="@(link(new Dictionary<string, object?> { ["city"] = null, ["page"] = null }))"><span>All cities</span></a>
+                @foreach (var city in cities) {<text>
+                <a class="@Cls(new Dictionary<string, object?> { ["0"] = "menu-i text-reset text-decoration-none", ["menu-on"] = At(filters, "city") == city })" href="@(link(new Dictionary<string, object?> { ["city"] = city, ["page"] = null }))"><span>@(city)</span></a>
+                </text>}
+              </div>
+            </div>
+            <a class="chip text-decoration-none" href="@(link(new Dictionary<string, object?> { ["sort"] = At(filters, "newest") ? null : "newest", ["page"] = null }))"><i class="bi bi-sort-down"></i> @(At(filters, "newest") ? "Newest first" : "Oldest first")</a>
+          </div>
+        </div>
+        <div class="card-tl" style="overflow:hidden">
+          <table class="tbl">
+            <thead><tr><th style="width:34px"><input class="form-check-input" type="checkbox" style="margin:0" data-check-all aria-label="Select all"></th><th>Booking</th><th>Customer</th><th>Route</th><th>Pickup</th><th>Volume</th><th>Recommended</th><th>Total</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              @if (!IsEmpty(bookings)) {<text>
+@foreach (var booking in bookings) {<text>
+              @{
+dynamic @new = booking.BookingId == newest;
+}
+              <tr class="@Cls(new Dictionary<string, object?> { ["row-new"] = @new })"><td><input class="form-check-input" type="checkbox" style="margin:0" value="@(booking.BookingId)" data-check aria-label="Select @(booking.Reference)"></td><td><div class="mono-d" style="font-weight:600">@(booking.Reference)</div><div class="kv">@(Ago(booking.CreatedAt))</div></td><td><div class="d-flex align-items-center gap-2">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = booking.Customer.FirstName, ["last"] = booking.Customer.LastName, ["sm"] = true })@(booking.Customer.FullName)</div></td><td>@(booking.PickupCity) → @(booking.DropoffCity)</td><td>@(Format(booking.PickupDatetime, "d M, H:i"))</td><td class="mono-d">@(NumberFormat(booking.TotalVolumeM3, 2)) m³</td><td>@if (Truthy(booking.RecommendedVehicleType)) {<text>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = booking.RecommendedVehicleType })</text>}</td><td style="font-weight:700">@(Sar(booking.TotalAmount)) SAR</td><td>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = booking.BookingStatus })</td><td style="text-align:right"><a class="@Cls(new Dictionary<string, object?> { ["0"] = "btn b-sm", ["btn-tl"] = @new, ["btn-out"] = !@new })" href="@(route("admin.bookings.show", booking))">@(booking.IsPending() ? "Review" : "View")</a></td></tr>
+              </text>}
+</text>} else {<text>
+              <tr><td colspan="10" class="kv">@(At(filters, "status") == "pending" && !At(filters, "q") ? "No requests waiting - the queue is clear." : "No bookings match these filters.")</td></tr>
+              </text>}
+            </tbody>
+          </table>
+          @await Html.PartialAsync("~/Views/Shared/_Pager.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["paginator"] = bookings, ["label"] = label }))
+        </div>
+}
+
+@section Scripts {
+<script>
+  (function () {
+    
+    var checks = document.querySelectorAll('[data-check]'), all = document.querySelector('[data-check-all]'), exportLink = document.querySelector('[data-export]');
+    var base = exportLink.href;
+    function sync() {
+      var ids = Array.prototype.filter.call(checks, function (c) { return c.checked; }).map(function (c) { return c.value; });
+      exportLink.href = ids.length ? base + (base.indexOf('?') < 0 ? '?' : '&') + 'ids=' + ids.join(',') : base;
+    }
+    checks.forEach(function (c) { c.addEventListener('change', sync); });
+    all.addEventListener('change', function () { checks.forEach(function (c) { c.checked = all.checked; }); sync(); });
+  })();
+</script>
+}

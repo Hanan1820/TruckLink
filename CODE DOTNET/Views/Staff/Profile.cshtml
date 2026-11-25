@@ -1,0 +1,66 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic member = ViewData["member"];
+}
+
+
+
+@{ ViewData["title"] = "My Profile"; }
+
+@{
+dynamic pe = errors.GetBag("profile");
+}
+
+@section Content {
+        @if (Truthy(session("status"))) {<text>
+        <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div>@(session("status"))</div></div>
+        </text>}
+        <div class="crumb"><b>Profile</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-4">
+          <div class="d-flex align-items-center gap-3">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = member.FirstName, ["last"] = member.LastName, ["style"] = "width:56px;height:56px;font-size:19px" })
+            <div><h1 class="h-page">@(member.FullName)</h1><p class="h-sub">@(member.JobTitle) · <span class="mono-d">@(member.Code)</span> · since @(Format(member.HireDate, "d M Y"))</p></div></div>
+          <form method="POST" action="@(route("logout"))">@Html.AntiForgeryToken()<button type="submit" class="btn btn-out-dg b-md"><i class="bi bi-box-arrow-right"></i> Sign out</button></form>
+        </div>
+        <div class="row g-4">
+          <div class="col-8">
+            <form method="POST" action="@(route("staff.profile.update"))" class="card-tl p-4">
+              @Html.AntiForgeryToken() <input type="hidden" name="_method" value="PUT"> 
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-person-vcard"></i></div><div><h2 class="h-card">Contact details</h2><p class="kv mb-0">They also sign you in</p></div></div>
+              <div class="row g-3 mb-4">
+                <div class="col-6">@{ PushWriter(new System.IO.StringWriter()); }
+                  <div style="position:relative"><i class="bi bi-envelope" style="position:absolute;left:15px;top:14px;color:var(--s)"></i>
+                  <input id="email" name="email" type="email" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = pe.Has("email") })" style="padding-left:43px" value="@(old("email", member.Email))" required maxlength="100" autocomplete="email"></div>
+                @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "email", ["label"] = "Email address", ["bag"] = "profile", ["required"] = true, ["slot"] = __slot1 })</div>
+                <div class="col-6">@{ PushWriter(new System.IO.StringWriter()); }
+                  <div style="position:relative"><span style="position:absolute;left:15px;top:12px;color:var(--s);font-size:14px">+966</span>
+                  <input id="phone" name="phone" type="tel" inputmode="numeric" class="@Cls(new Dictionary<string, object?> { ["0"] = "fld", ["fld-err"] = pe.Has("phone") })" style="padding-left:54px" value="@(old("phone", member.PhoneLocal))" required maxlength="13" pattern="^0?5[0-9]\s?[0-9]{3}\s?[0-9]{4}$" placeholder="5X XXX XXXX" title="Saudi mobile number, e.g. 55 412 8830" autocomplete="tel-national"></div>
+                @{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "phone", ["label"] = "Phone number", ["bag"] = "profile", ["required"] = true, ["slot"] = __slot2 })</div>
+              </div>
+              <div class="d-flex justify-content-end"><button type="submit" class="btn btn-tl b-md"><i class="bi bi-check-lg"></i> Save details</button></div>
+            </form>
+            <form method="POST" action="@(route("staff.profile.password"))" class="card-tl p-4 mt-4">
+              @Html.AntiForgeryToken() <input type="hidden" name="_method" value="PUT"> 
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-shield-lock"></i></div><div><h2 class="h-card">Password</h2><p class="kv mb-0">8–20 characters with upper and lower case letters, a number and a symbol</p></div></div>
+              <div class="row g-3 mb-4">
+                <div class="col-4">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "current_password", ["label"] = "Current password", ["bag"] = "password", ["type"] = "password", ["required"] = true, ["autocomplete"] = "current-password" })</div>
+                <div class="col-4">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "password", ["label"] = "New password", ["bag"] = "password", ["type"] = "password", ["required"] = true, ["minlength"] = "8", ["maxlength"] = "20", ["pattern"] = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,20}$", ["title"] = "8–20 characters with upper and lower case letters, a number and a symbol", ["autocomplete"] = "new-password" })</div>
+                <div class="col-4">@await Component.InvokeAsync("Field", new Dictionary<string, object?> { ["name"] = "password_confirmation", ["label"] = "Confirm new password", ["bag"] = "password", ["type"] = "password", ["required"] = true, ["minlength"] = "8", ["maxlength"] = "20", ["autocomplete"] = "new-password" })</div>
+              </div>
+              <div class="d-flex justify-content-end"><button type="submit" class="btn btn-out b-md"><i class="bi bi-key"></i> Change password</button></div>
+            </form>
+          </div>
+          <div class="col-4">
+            <div class="card-tl p-4 summary">
+              <div class="cap mb-3">Kept by the operations team</div>
+              <div class="sum-row"><span>Job title</span><span>@(member.JobTitle)</span></div>
+              @if (Truthy(member.LicenseNumber)) {<text><div class="sum-row"><span>Licence</span><span class="mono-d">@(member.LicenseNumber)</span></div></text>}
+              @if (Truthy(member.Specialty)) {<text><div class="sum-row"><span>Specialty</span><span>@(Ucfirst(member.Specialty))</span></div></text>}
+              <div class="sum-row"><span>Shift</span><span>@(member.ShiftStartLabel ? member.ShiftStartLabel + "–" + member.ShiftEndLabel : "-")</span></div>
+              @foreach (var warehouse in member.Warehouses) {<text><div class="sum-row"><span>Warehouse</span><span>@(warehouse.WarehouseName)</span></div></text>}
+              <div class="sum-row"><span>Status</span><span>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = member.StaffStatus })</span></div>
+            </div>
+            <div class="al a-in mt-4"><i class="bi bi-info-circle-fill" style="font-size:18px"></i><div>To change your name, job title or shift, ask your operations admin.</div></div>
+          </div>
+        </div>
+}

@@ -1,0 +1,70 @@
+
+@{
+    dynamic estimateUrl = ViewData["estimateUrl"];
+}
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+@await Html.PartialAsync("~/Views/Shared/_Head.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["shellCss"] = "tl-public" }))
+</head>
+<body>
+@{ estimateUrl ??= Check(auth("customer")) ? url("customer/bookings/create") : url("register"); }
+<div class="tl-page">
+
+  
+  <div class="nav-home">
+    <a class="logo-lockup" href="@(url("/"))"><img class="logo-mark" src="@(asset("img/logo-mark-dark.png"))" alt="TruckLink"><img class="logo-word" src="@(asset("img/logo-word-dark.png"))" alt="TruckLink"></a>
+    <div class="d-flex align-items-center gap-1 nav-links">
+      <a class="nav-l nav-l-on" href="@(url("/"))">Home</a><a class="nav-l" href="@(url("/#services"))">Services</a><a class="nav-l" href="@(url("/#storage"))">Premium Storage</a><a class="nav-l" href="@(url("/#fleet"))">Our Fleet</a><a class="nav-l" href="@(url("/#how-it-works"))">How it works</a>
+    </div>
+    <button type="button" class="btn btn-out b-ico rs-toggle" data-nav-toggle aria-label="Open the menu" aria-expanded="false"><i class="bi bi-list"></i></button>
+    <div class="d-flex align-items-center gap-2 nav-cta">
+      <a class="btn btn-out b-md" href="@(url("login"))">Sign in</a>
+      <a class="btn btn-tl b-md" href="@(estimateUrl)">Get a free estimate</a>
+    </div>
+  </div>
+
+  @RenderSection("Content", required: false)
+
+  
+  <div style="background:#1B2836;padding:56px 64px 34px">
+    <div class="d-flex gap-5 mb-5">
+      <div style="width:330px">
+        <span class="logo-lockup mb-3" style="display:inline-flex"><img class="logo-mark" src="@(asset("img/logo-mark-rev.png"))" alt="TruckLink"><img class="logo-word" src="@(asset("img/logo-word-rev.png"))" alt="TruckLink"></span>
+        <p style="font-size:14px;color:#AFBDCC;line-height:1.7;margin:18px 0 0">One company for transport, moving crews and storage. Our own fleet, our own people, across Saudi Arabia.</p>
+        <div class="d-flex gap-2 mt-4">
+          <div style="width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.1);color:#fff;display:flex;align-items:center;justify-content:center"><i class="bi bi-twitter-x"></i></div>
+          <div style="width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.1);color:#fff;display:flex;align-items:center;justify-content:center"><i class="bi bi-instagram"></i></div>
+          <div style="width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.1);color:#fff;display:flex;align-items:center;justify-content:center"><i class="bi bi-linkedin"></i></div>
+          <div style="width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.1);color:#fff;display:flex;align-items:center;justify-content:center"><i class="bi bi-whatsapp"></i></div>
+        </div>
+      </div>
+      <div style="flex:1"><div class="foot-cap">Services</div>
+        <a class="foot-l" href="@(url("/#services"))">Single Move</a><a class="foot-l" href="@(url("/#services"))">Multi-Stop Move</a><a class="foot-l" href="@(url("/#services"))">Temperature-Controlled</a><a class="foot-l" href="@(url("/#services"))">Full Home / Office Move</a><a class="foot-l" href="@(url("/#services"))">Assembly &amp; Packing</a></div>
+      <div style="flex:1"><div class="foot-cap">Premium Storage</div>
+        <a class="foot-l" href="@(url("/#storage"))">How storage works</a><a class="foot-l" href="@(url("/#storage"))">Pricing &amp; extensions</a><a class="foot-l">Warehouse security</a><a class="foot-l">Business storage</a></div>
+      <div style="flex:1"><div class="foot-cap">Company</div>
+        <a class="foot-l">About TruckLink</a><a class="foot-l" href="@(url("/#fleet"))">Our fleet</a><a class="foot-l">Careers - we are hiring</a><a class="foot-l" href="mailto:hello@@trucklink.sa">Contact us</a></div>
+      <div style="flex:1"><div class="foot-cap">Get in touch</div>
+        <a class="foot-l" href="tel:@(StrReplace(" ", "", config("trucklink.support_phone")))"><i class="bi bi-telephone me-2"></i>@(config("trucklink.support_phone"))</a>
+        <a class="foot-l" href="mailto:hello@@trucklink.sa"><i class="bi bi-envelope me-2"></i>hello@@trucklink.sa</a>
+        <a class="foot-l"><i class="bi bi-geo-alt me-2"></i>Al Olaya, Riyadh 12213</a>
+        <a class="foot-l"><i class="bi bi-clock me-2"></i>Support 24/7</a></div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center" style="border-top:1px solid rgba(255,255,255,.12);padding-top:26px">
+      <span style="font-size:13px;color:#8496AB">© 2026 TruckLink. All rights reserved. · CR 1010XXXXXX</span>
+      <div class="d-flex gap-4"><span style="font-size:13px;color:#8496AB">Privacy Policy</span><span style="font-size:13px;color:#8496AB">Terms of Service</span><span style="font-size:13px;color:#8496AB">Refund Policy</span></div>
+    </div>
+  </div>
+
+</div>
+@RenderSection("Modals", required: false)
+<script>
+  
+  document.querySelectorAll('[data-nav-toggle]').forEach(function (b) {
+    b.addEventListener('click', function () { var nav = b.closest('.nav-tl, .nav-home'); var open = nav.classList.toggle('nav-open'); b.setAttribute('aria-expanded', String(open)); });
+  });
+</script>
+@RenderSection("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,176 @@
+
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic available = ViewData["available"];
+    dynamic booking = ViewData["booking"];
+    dynamic capacity = ViewData["capacity"];
+    dynamic history = ViewData["history"];
+    dynamic load = ViewData["load"];
+}
+
+
+
+
+
+@{ ViewData["title"] = booking.Reference; }
+
+@{
+dynamic tab = InArray(request("tab"), new object[] { "items", "pricing", "history" }, true) ? request("tab") : "details";
+dynamic customer = booking.Customer;
+dynamic pickup = booking.PickupDatetime;
+dynamic delivery = booking.ExpectedDeliveryDatetime;
+dynamic lines = booking.BookingServices;
+dynamic type = booking.RecommendedVehicleType;
+dynamic extension = First(lines,  (Func<dynamic, dynamic>)((l) => l.Service.ServiceType == "Storage" && l.Service.PricingUnit != "first 7 days"));
+dynamic hasStorage = Contains(lines,  (Func<dynamic, dynamic>)((l) => l.Service.ServiceType == "Storage"));
+dynamic volume = (double)booking.TotalVolumeM3;
+dynamic weight = Sum(booking.Items,  (Func<dynamic, dynamic>)((i) => (double)i.EstimatedWeightKg));
+dynamic confidence = Count(booking.Items) ? Round(Avg(booking.Items,  (Func<dynamic, dynamic>)((i) => (double)i.AiConfidenceScore))) : null;
+dynamic byType =  (Func<dynamic, dynamic>)((t) => Sum(Filter(lines,  (Func<dynamic, dynamic>)((l) => l.Service.ServiceType == t)),  (Func<dynamic, dynamic>)((l) => (double)l.Subtotal)));
+dynamic storageStart = booking.StorageRequest?.StartDate ?? StartOfDay(Copy(pickup));
+dynamic storageEnd = booking.StorageRequest?.EndDate ?? StartOfDay(Copy(delivery));
+dynamic quote = hasStorage && storageEnd ? app(typeof(TruckLink.Support.Services.StorageCalculator)).Quote(storageStart, storageEnd) : null;
+dynamic span =  (Func<dynamic, dynamic, dynamic>)((a, b) => (IsSameMonth(a, b) ? Format(a, "d") : Format(a, "d M")) + "–" + Format(b, "d M"));
+dynamic tight = load != null && load > 85;
+dynamic pickupLine = IsFuture(pickup) ? "pickup in " + DiffForHumans(pickup, null, CarbonInterface.DIFF_ABSOLUTE) : "pickup was " + Format(pickup, "d M, H:i");
+dynamic tabLink =  (Func<dynamic, dynamic>)((t) => route("admin.bookings.show", t == "details" ? booking : new Dictionary<string, object?> { ["0"] = booking, ["tab"] = t }));
+}
+
+@section Content {
+        @if (Truthy(session("status"))) {<text>
+        <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill" style="font-size:20px"></i><div>@(session("status"))</div></div>
+        </text>}
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <a href="@(route("admin.bookings.index"))" class="text-reset text-decoration-none">Bookings</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>@(booking.Reference)</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-4">
+          <div><div class="d-flex align-items-center gap-3"><h1 class="h-page">@(booking.Reference)</h1>@if (Truthy(booking.IsPending())) {<text>@{ PushWriter(new System.IO.StringWriter()); }Pending your decision@{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = "Pending", ["icon"] = "bi-hourglass-split", ["style"] = "font-size:13px;padding:7px 15px", ["slot"] = __slot1 })</text>} else {<text>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = booking.BookingStatus, ["style"] = "font-size:13px;padding:7px 15px" })</text>}</div>
+            <p class="h-sub">Submitted @(DiffForHumans(booking.CreatedAt)) by @(customer.FullName) · @(pickupLine)</p></div>
+          <div class="d-flex gap-2">
+            @if (Truthy(booking.IsPending())) {<text>
+            <button type="button" class="btn btn-out-dg b-lg" data-modal-open="reject"><i class="bi bi-x-circle"></i> Reject</button><button type="button" class="btn btn-ok b-lg" data-modal-open="accept"><i class="bi bi-check-circle"></i> Accept &amp; assign</button>
+            </text>} else if (booking.BookingStatus == "Accepted") {<text>
+            <a class="btn btn-out b-lg" href="@(route("admin.bookings.accepted", booking))"><i class="bi bi-clipboard-check"></i> Assigned resources</a>
+            </text>}
+          </div>
+        </div>
+        <div class="d-flex mb-4" style="border-bottom:1px solid var(--line)">
+          @foreach (var (key, title) in Pairs((object?)(new Dictionary<string, object?> { ["details"] = "Request details", ["items"] = "Items &amp; measurements", ["pricing"] = "Services &amp; pricing", ["history"] = "Customer history" }))) {<text>
+          <a class="@Cls(new Dictionary<string, object?> { ["0"] = "tab text-decoration-none", ["tab-on"] = tab == key })" href="@(tabLink(key))">@Html.Raw(title)</a>
+          </text>}
+        </div>
+
+        @if (tab == "details") {<text>
+        <div class="row g-3">
+          <div class="col-8">
+            <div class="card-tl mb-3" style="padding:24px">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-person"></i></div><div><h2 class="h-card">Customer</h2><p class="kv mb-0">Account @(customer.AccountStatus == "Active" ? "active" : Strtolower(customer.AccountStatus)) since @(Format(customer.CreatedAt, "F Y"))</p></div></div>
+              <div class="row g-4">
+                <div class="col-4"><div class="d-flex align-items-center gap-3">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = customer.FirstName, ["last"] = customer.LastName, ["style"] = "width:46px;height:46px;font-size:15px" })<div><div style="font-weight:700;font-size:15px">@(customer.FullName)</div><div class="kv">@(customer.City)</div></div></div></div>
+                <div class="col-4"><div class="cap mb-2">Contact</div><div style="font-size:14px">@(customer.PhoneDisplay)</div><div class="kv">@(customer.Email)</div></div>
+                <div class="col-4"><div class="cap mb-2">History</div><div style="font-size:14px"><b>@(At(history, "completed"))</b> completed · <b>@(At(history, "cancelled"))</b> cancelled</div><div class="kv d-flex align-items-center gap-1">@if (Truthy(At(history, "rating"))) {<text><i class="bi bi-star-fill" style="color:#B7791F"></i> @(NumberFormat(At(history, "rating"), 1)) average rating given </text>} else {<text> No reviews given yet </text>}</div></div>
+              </div>
+            </div>
+            <div class="card-tl mb-3" style="padding:24px">
+              <div class="sec-head"><div class="sec-ic"><i class="bi bi-geo-alt"></i></div><div><h2 class="h-card">Route &amp; schedule</h2><p class="kv mb-0">@(Format(pickup, "l, d F Y"))</p></div></div>
+              <div class="row g-4">
+                <div class="col-4"><div class="cap mb-2">Pickup · @(Format(pickup, "H:i"))</div><div style="font-weight:600;font-size:14.5px">@(booking.PickupAddress)</div><div class="kv">@(booking.PickupCity)</div></div>
+                <div class="col-4"><div class="cap mb-2">Drop-off · expected @(delivery && !IsSameDay(delivery, pickup) ? Format(delivery, "d M, H:i") : Format(delivery, "H:i"))</div><div style="font-weight:600;font-size:14.5px">@(booking.DropoffAddress)</div><div class="kv">@(booking.DropoffCity)@if (Truthy(booking.DistanceKm)) {<text> · @(Num(booking.DistanceKm, 0)) km </text>}</div></div>
+                <div class="col-4"><div class="cap mb-2">Crew note from customer</div><div class="kv">@((Truthy(booking.CustomerNotes) ? booking.CustomerNotes : "-"))</div></div>
+              </div>
+            </div>
+            @await Html.PartialAsync("~/Views/Admin/Bookings/Partials/ServicesCard.cshtml")
+          </div>
+          <div class="col-4">
+            @if (Truthy(type)) {<text>
+            <div class="card-tl mb-3" style="padding:0;overflow:hidden;border:2px solid var(--p)">
+              <div style="background:linear-gradient(160deg,#F7F9FB 0%,#EDF1F6 100%);padding:20px;text-align:center">
+                <div class="cap mb-3">System recommendation</div>
+                @if (type == "Medium Truck") {<text>
+                @await Html.PartialAsync("~/Views/Svg/AdminRecommendMediumTruck.cshtml")
+                </text>} else {<text>
+                <div style="width:160px;margin:0 auto">@await Html.PartialAsync((string)TlView(At(TruckLink.Models.Vehicle.ILLUSTRATIONS, type)))</div>
+                </text>}
+                <div class="ff" style="font-size:19px;font-weight:800;margin-top:4px">@(type)</div><div class="kv">@(Num(capacity)) m³ capacity</div>
+              </div>
+              <div style="padding:20px">
+                <div class="d-flex justify-content-between mb-2" style="font-size:13px;font-weight:600"><span>Load @(NumberFormat(volume, 2)) m³ of @(Num(capacity)) m³</span><span style="color:var(@(tight ? "--wn" : "--ok"))">@(load)%</span></div>
+                <div class="bar-track mb-3"><div class="bar-fill" style="width:@(Min(load, 100))%;background:var(@(tight ? "--wn" : "--ok"))"></div></div>
+                <div class="sum-row" style="padding:7px 0"><span>Items</span><span>@(Count(booking.Items)) · ~@(NumberFormat(weight)) kg</span></div>
+                <div class="sum-row" style="padding:7px 0"><span>Avg. confidence</span><span style="color:var(--ok)">@(confidence)%</span></div>
+                <div class="sum-row" style="padding:7px 0"><span>Available that day</span><span style="color:var(@(At(available, 0) ? "--ok" : "--dg"))">@(At(available, 0)) of @(At(available, 1))</span></div>
+              </div>
+            </div>
+            </text>}
+            <div class="card-tl summary" style="padding:22px">
+              <div class="cap mb-3">Payment</div>
+              <div class="sum-row"><span>Transport</span><span>@(Sar(byType("Transport"))) SAR</span></div>
+              <div class="sum-row"><span>Value-added services</span><span>@(Sar(byType("Value-Added"))) SAR</span></div>
+              <div class="sum-row" style="border-bottom:1px solid var(--line);padding-bottom:13px"><span>Storage</span><span>@(Sar(byType("Storage"))) SAR</span></div>
+              <div class="tot-box mt-3"><span class="t-l">Total</span><span class="t-v">@(Sar(booking.TotalAmount)) SAR</span></div>
+              @if (Truthy(booking.IsPending())) {<text>
+              <div class="al a-in mt-3" style="font-size:13px;padding:12px 14px"><i class="bi bi-info-circle-fill" style="font-size:15px"></i><div>Charged per service <b>after</b> you accept. Nothing has been taken yet.</div></div>
+              </text>} else {<text>
+              <div class="sum-row mt-2"><span>Paid so far</span><span style="color:var(--ok)">@(Sar(Sum(Where(booking.Payments, "payment_status", "Paid"),  (Func<dynamic, dynamic>)((p) => (double)p.Amount)))) SAR</span></div>
+              </text>}
+            </div>
+          </div>
+        </div>
+
+        </text>} else if (tab == "items") {<text>
+        <div class="card-tl" style="overflow:hidden">
+          <table class="tbl">
+            <thead><tr><th colspan="2">Item</th><th>Dimensions (L×W×H)</th><th>Volume</th><th>Weight</th><th>Confidence</th><th>Photos</th></tr></thead>
+            <tbody>
+              @foreach (var (item, loop) in WithLoop((object?)(booking.Items))) {<text>
+              <tr>
+                <td style="@(loop.First ? "width:74px;" : "")padding-right:0">@await Html.PartialAsync("~/Views/Customer/Booking/Partials/ItemThumb.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["item"] = item, ["small"] = true }))</td>
+                <td><b>@(item.ItemName)</b><div class="kv">@(item.Category?.ShortName) · Qty @(item.Quantity)</div></td>
+                <td class="mono-d">@(item.DimensionsLabel)</td><td class="mono-d">@(NumberFormat(item.EstimatedVolumeM3, 2)) m³</td><td class="mono-d">~@(NumberFormat(item.EstimatedWeightKg)) kg</td>
+                <td>@{ PushWriter(new System.IO.StringWriter()); }@(Num(item.AiConfidenceScore, 0))%@{ var __slot2 = new HtmlString(PopWriter().ToString()); }@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = "Measured", ["slot"] = __slot2 })</td>
+                <td>@foreach (var (photo, loop) in WithLoop((object?)(item.Photos))) {<text><a href="@(photo.Src)" target="_blank" rel="noopener" class="ib me-1" aria-label="Photo @(loop.Iteration)"><i class="bi bi-image"></i></a></text>}</td></tr>
+              </text>}
+            </tbody>
+          </table>
+          <div class="p-3 px-4 d-flex justify-content-between align-items-center" style="background:#F5F8FA;font-weight:700"><span>Total - @(Count(booking.Items)) @(Plural("item", Count(booking.Items)))</span><span class="mono-d" style="font-size:15px;font-weight:700">@(NumberFormat(volume, 2)) m³ · ~@(NumberFormat(weight)) kg</span></div>
+        </div>
+
+        </text>} else if (tab == "pricing") {<text>
+        <div class="row g-3">
+          <div class="col-8">@await Html.PartialAsync("~/Views/Admin/Bookings/Partials/ServicesCard.cshtml")</div>
+          <div class="col-4">
+            <div class="card-tl" style="overflow:hidden">
+              <table class="tbl">
+                <thead><tr><th>Invoice</th><th>Amount</th><th>Status</th></tr></thead>
+                <tbody>
+                  @if (!IsEmpty(booking.Payments)) {<text>
+@foreach (var payment in booking.Payments) {<text>
+                  <tr><td><div class="mono-d" style="font-weight:600">@(payment.InvoiceNumber)</div><div class="kv">@(payment.PaymentMethod) · @(Format(payment.TransactionDate, "d M"))</div></td><td style="font-weight:700">@(Sar(payment.Amount)) SAR</td><td>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = payment.PaymentStatus })</td></tr>
+                  </text>}
+</text>} else {<text>
+                  <tr><td colspan="3" class="kv">No payments yet - the customer pays per service after acceptance.</td></tr>
+                  </text>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        </text>} else {<text>
+        <div class="card-tl" style="overflow:hidden">
+          <table class="tbl">
+            <thead><tr><th>Booking</th><th>Route</th><th>Pickup</th><th>Volume</th><th>Recommended</th><th>Total</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              @foreach (var past in At(history, "bookings")) {<text>
+              <tr class="@Cls(new Dictionary<string, object?> { ["row-new"] = past.BookingId == booking.BookingId })"><td><div class="mono-d" style="font-weight:600">@(past.Reference)</div><div class="kv">@(Ago(past.CreatedAt))</div></td><td>@(past.PickupCity) → @(past.DropoffCity)</td><td>@(Format(past.PickupDatetime, "d M, H:i"))</td><td class="mono-d">@(NumberFormat(past.TotalVolumeM3, 2)) m³</td><td>@if (Truthy(past.RecommendedVehicleType)) {<text>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = past.RecommendedVehicleType })</text>}</td><td style="font-weight:700">@(Sar(past.TotalAmount)) SAR</td><td>@await Component.InvokeAsync("StatusPill", new Dictionary<string, object?> { ["value"] = past.BookingStatus })</td><td style="text-align:right"><a class="btn btn-out b-sm" href="@(route("admin.bookings.show", past))">View</a></td></tr>
+              </text>}
+            </tbody>
+          </table>
+        </div>
+        </text>}
+}
+
+@if (Truthy(booking.IsPending())) {<text>
+@section Modals {
+@await Html.PartialAsync("~/Views/Admin/Bookings/Partials/AcceptModal.cshtml")
+@await Html.PartialAsync("~/Views/Admin/Bookings/Partials/RejectModal.cshtml")
+}
+</text>}

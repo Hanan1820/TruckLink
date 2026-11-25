@@ -1,0 +1,56 @@
+
+@using C = TruckLink.Controllers.Admin.ReviewController
+@{ Layout = "~/Views/Shared/_AdminLayout.cshtml"; }
+@{
+    dynamic byRating = ViewData["byRating"];
+    dynamic reviews = ViewData["reviews"];
+    dynamic selected = ViewData["selected"];
+    dynamic total = ViewData["total"];
+    dynamic unmoderated = ViewData["unmoderated"];
+}
+
+
+
+@{ ViewData["title"] = "Reviews"; }
+@{ ViewData["search_placeholder"] = "Search reviews by comment, customer or booking"; }
+@{ ViewData["search_action"] = route("admin.reviews.index"); }
+
+@{
+
+}
+
+@section Content {
+        @if (Truthy(session("status"))) {<text>
+        <div class="al a-ok mb-4"><i class="bi bi-check-circle-fill" style="font-size:19px"></i><div>@(session("status"))</div></div>
+        </text>}
+        <div class="crumb"><a href="@(url("admin/dashboard"))" class="text-reset text-decoration-none">Dashboard</a> <i class="bi bi-chevron-right" style="font-size:9px"></i> <b>Reviews</b></div>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <div><h1 class="h-page">Customer Reviews</h1>
+               <p class="h-sub">@(total) @(Plural("review", total)) on completed bookings &#183; @(unmoderated) not moderated yet</p></div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-out b-md" href="@(route("admin.reports.show", "satisfaction"))"><i class="bi bi-bar-chart"></i> Satisfaction report</a>
+          </div>
+        </div>
+        @await Html.PartialAsync("~/Views/Admin/Crud/Partials/Filters.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["chips"] = new Dictionary<string, object?> { ["param"] = "rating", ["all"] = new object[] { "All reviews", total }, ["items"] = All(Values(Map(Collect(C.CHIPS),  (Func<dynamic, dynamic, dynamic>)((c, key) => new object[] { key, At(c, 0), (int)Sum(Collect(At(c, 1)),  (Func<dynamic, dynamic>)((r) => At(byRating, r) ?? 0)), "bi-star-fill" })))) }, ["menus"] = new Dictionary<string, object?> { ["0"] = new Dictionary<string, object?> { ["param"] = "moderated", ["icon"] = "bi-funnel", ["options"] = new Dictionary<string, object?> { [""] = "Moderated or not", ["yes"] = "Moderated", ["no"] = "Not moderated" } }, ["1"] = new Dictionary<string, object?> { ["param"] = "sort", ["icon"] = "bi-sort-down", ["options"] = C.SORTS, ["default"] = "newest" } } }))
+        <div class="card-tl" style="overflow:hidden">
+          <table class="tbl">
+            <thead><tr><th>Rating</th><th>Review</th><th>Booking</th><th>Customer</th><th>Moderated</th><th style="text-align:right">Actions</th></tr></thead>
+            <tbody>@if (!IsEmpty(reviews)) {<text>
+@foreach (var review in reviews) {<text><tr><td style="white-space:nowrap">@for (var i = 1; i <= 5; i++) {<text><i class="bi @(i <= review.Rating ? "bi-star-fill" : "bi-star")" style="color:@(i <= review.Rating ? "#B7791F" : "var(--line2)")"></i></text>}<div class="kv">@(Format(review.CreatedAt, "d M Y"))</div></td><td style="max-width:360px">@((Truthy(review.Comment) ? review.Comment : "-"))</td><td class="mono-d" style="font-weight:600"><a class="text-reset text-decoration-none" href="@(route("admin.bookings.show", review.Booking))">@(review.Booking.Reference)</a>@if (Truthy(review.Booking.Driver)) {<text><div class="kv" style="font-family:inherit;font-weight:400">Driver @(review.Booking.Driver.FullName)</div></text>}</td><td><div class="d-flex align-items-center gap-2">@await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = review.Customer.FirstName, ["last"] = review.Customer.LastName, ["sm"] = true })@(review.Customer.FullName)</div></td><td class="kv">@(review.Moderator?.FullName ?? "-")</td><td style="text-align:right"><div class="d-flex gap-2 justify-content-end">@if (!(Truthy(review.AdminId))) {<text><form method="POST" action="@(route("admin.reviews.moderate", review))">@Html.AntiForgeryToken()<button type="submit" class="ib" aria-label="Mark the review of @(review.Booking.Reference) as moderated" title="Mark as moderated"><i class="bi bi-check2-circle"></i></button></form></text>}<a class="ib ib-dg text-decoration-none" href="@(FilterUrl(new Dictionary<string, object?> { ["delete"] = review.ReviewId }))" aria-label="Delete the review of @(review.Booking.Reference)"><i class="bi bi-trash3"></i></a></div></td></tr></text>}
+</text>} else {<text><tr><td colspan="6" class="kv">No reviews match these filters.</td></tr></text>}</tbody>
+          </table>
+          @await Html.PartialAsync("~/Views/Shared/_Pager.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["paginator"] = reviews, ["label"] = Plural("review", Total(reviews)) }))
+        </div>
+}
+
+@section Modals {
+@if (Truthy(selected)) {<text>
+@{ PushWriter(new System.IO.StringWriter()); }
+    @await Component.InvokeAsync("Avatar", new Dictionary<string, object?> { ["first"] = selected.Customer.FirstName, ["last"] = selected.Customer.LastName })
+    <div style="flex:1">
+      <div style="font-weight:700;font-size:15px">@(selected.Customer.FullName) &#183; @for (var i = 1; i <= 5; i++) {<text><i class="bi @(i <= selected.Rating ? "bi-star-fill" : "bi-star")" style="color:@(i <= selected.Rating ? "#B7791F" : "var(--line2)")"></i></text>}</div>
+      <div class="kv">@(Limit((Truthy(selected.Comment) ? selected.Comment : "No comment"), 110))</div>
+    </div>
+  @{ var __slot1 = new HtmlString(PopWriter().ToString()); }@await Html.PartialAsync("~/Views/Shared/_DeleteGuard.cshtml", Vd(ViewData, new Dictionary<string, object?> { ["id"] = "delete-record", ["open"] = true, ["title"] = "Delete the review of " + selected.Booking.Reference + "?", ["code"] = "Review #" + selected.ReviewId, ["table"] = "reviews", ["uses"] = new object[0], ["deactivate"] = selected.AdminId ? null : new Dictionary<string, object?> { ["title"] = "Keep it and mark it moderated", ["text"] = "The review stays visible to customers and in the satisfaction report, and you are recorded as its moderator.", ["action"] = route("admin.reviews.moderate", selected), ["button"] = "Mark moderated", ["icon"] = "bi-check2-circle" }, ["confirm-label"] = "Type the booking reference to confirm", ["confirm-value"] = selected.Booking.Reference, ["delete-action"] = route("admin.reviews.destroy", selected), ["delete-note"] = "Use this for abusive, false or off-topic reviews. The customer can write a new one.", ["summary"] = __slot1 }))
+</text>}
+}
